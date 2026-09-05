@@ -29,6 +29,20 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Banco de dados e autenticação
+
+O acesso ao app é por código de acesso de estúdio (sem login individual).
+
+1. Configure `DATABASE_URL` (Neon) e `SESSION_SECRET` em `.env.local`.
+2. Rode o schema em `db/schema.sql` contra o banco (via console do Neon ou `psql`).
+3. Cadastre um estúdio com código de acesso:
+
+   ```bash
+   npx tsx scripts/create-studio.ts "Nome do Estúdio" "codigo-secreto"
+   ```
+
+4. Acesse `/login` e entre com o código cadastrado.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
