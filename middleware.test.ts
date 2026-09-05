@@ -4,7 +4,9 @@ import { createSessionToken, SESSION_COOKIE_NAME } from "@/lib/session";
 import { middleware } from "./middleware";
 
 function requestFor(path: string, cookie?: string) {
-  const headers = cookie ? { cookie: `${SESSION_COOKIE_NAME}=${cookie}` } : {};
+  const headers: HeadersInit = cookie
+    ? { cookie: `${SESSION_COOKIE_NAME}=${cookie}` }
+    : {};
   return new NextRequest(new URL(path, "http://localhost"), { headers });
 }
 
