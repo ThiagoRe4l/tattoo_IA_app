@@ -15,7 +15,7 @@ describe("checkQuota", () => {
 
     const status = await checkQuota(STUDIO_ID);
 
-    expect(status).toEqual({ allowed: true, used: 3, limit: 10 });
+    expect(status).toEqual({ status: "ok", allowed: true, used: 3, limit: 10 });
   });
 
   it("bloqueia uso quando a contagem do mes atingiu o limite", async () => {
@@ -24,25 +24,35 @@ describe("checkQuota", () => {
 
     const status = await checkQuota(STUDIO_ID);
 
-    expect(status).toEqual({ allowed: false, used: 10, limit: 10 });
+    expect(status).toEqual({ status: "ok", allowed: false, used: 10, limit: 10 });
   });
 
-  it("bloqueia uso quando o estudio nao tem limite_mensal configurado", async () => {
+  it("retorna sem_limite_configurado quando o estudio existe mas nao tem limite_mensal", async () => {
     sqlMock.mockResolvedValueOnce([{ limite_mensal: null }]);
 
     const status = await checkQuota(STUDIO_ID);
 
-    expect(status).toEqual({ allowed: false, used: 0, limit: null });
+    expect(status).toEqual({ status: "sem_limite_configurado" });
     expect(sqlMock).toHaveBeenCalledTimes(1);
   });
 
-  it("bloqueia uso quando o estudio nao existe", async () => {
+  it("retorna estudio_nao_encontrado quando o estudio nao existe", async () => {
     sqlMock.mockResolvedValueOnce([]);
 
     const status = await checkQuota(STUDIO_ID);
 
-    expect(status).toEqual({ allowed: false, used: 0, limit: null });
+    expect(status).toEqual({ status: "estudio_nao_encontrado" });
     expect(sqlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("filtra o mes corrente no fuso America/Sao_Paulo, nao UTC", async () => {
+    sqlMock.mockResolvedValueOnce([{ limite_mensal: 10 }]);
+    sqlMock.mockResolvedValueOnce([{ count: 0 }]);
+
+    await checkQuota(STUDIO_ID);
+
+    const [strings] = sqlMock.mock.calls[1];
+    expect(strings.join("")).toContain("America/Sao_Paulo");
   });
 });
 
