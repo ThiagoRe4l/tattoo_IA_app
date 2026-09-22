@@ -1,3 +1,4 @@
+import "./env";
 import bcrypt from "bcryptjs";
 import { sql } from "../lib/db";
 
