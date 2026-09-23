@@ -4,7 +4,7 @@ const { sqlMock } = vi.hoisted(() => ({ sqlMock: vi.fn() }));
 
 vi.mock("@/lib/db", () => ({ sql: sqlMock }));
 
-import { checkQuota, recordUsage } from "./usage";
+import { checkQuota, releaseUsage, reserveUsage } from "./usage";
 
 const STUDIO_ID = "studio-1";
 
@@ -56,12 +56,65 @@ describe("checkQuota", () => {
   });
 });
 
-describe("recordUsage", () => {
-  it("insere uma linha em usage_log para o estudio", async () => {
+describe("reserveUsage", () => {
+  it("reserva a quantidade inteira e retorna os ids inseridos quando ha cota", async () => {
+    sqlMock.mockResolvedValueOnce([{ id: "u1" }, { id: "u2" }]);
+
+    const ids = await reserveUsage(STUDIO_ID, 2);
+
+    expect(ids).toEqual(["u1", "u2"]);
+    expect(sqlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("nao reserva nada quando o estudio nao existe", async () => {
     sqlMock.mockResolvedValueOnce([]);
 
-    await recordUsage(STUDIO_ID);
+    const ids = await reserveUsage(STUDIO_ID, 2);
+
+    expect(ids).toEqual([]);
+  });
+
+  it("nao reserva nada quando o estudio nao tem limite_mensal configurado", async () => {
+    sqlMock.mockResolvedValueOnce([]);
+
+    const ids = await reserveUsage(STUDIO_ID, 2);
+
+    expect(ids).toEqual([]);
+  });
+
+  it("nao reserva nada quando a quantidade pedida nao cabe na cota restante", async () => {
+    sqlMock.mockResolvedValueOnce([]);
+
+    const ids = await reserveUsage(STUDIO_ID, 4);
+
+    expect(ids).toEqual([]);
+  });
+
+  it("usa o mes corrente no fuso America/Sao_Paulo e trava por pg_advisory_xact_lock", async () => {
+    sqlMock.mockResolvedValueOnce([{ id: "u1" }]);
+
+    await reserveUsage(STUDIO_ID, 1);
+
+    const [strings] = sqlMock.mock.calls[0];
+    const query = strings.join("");
+    expect(query).toContain("America/Sao_Paulo");
+    expect(query).toContain("pg_advisory_xact_lock");
+    expect(query).toContain("generate_series");
+  });
+});
+
+describe("releaseUsage", () => {
+  it("apaga as linhas reservadas pelos ids informados", async () => {
+    sqlMock.mockResolvedValueOnce([]);
+
+    await releaseUsage(["u1", "u2"]);
 
     expect(sqlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("nao chama o banco quando nao ha ids pra liberar", async () => {
+    await releaseUsage([]);
+
+    expect(sqlMock).not.toHaveBeenCalled();
   });
 });
