@@ -74,7 +74,8 @@ export async function POST(request: NextRequest) {
   for (const id of reservados) {
     try {
       imagens.push(await generateImage(prompt));
-    } catch {
+    } catch (error) {
+      console.error("Erro ao gerar imagem:", error);
       idsFalhos.push(id);
     }
   }
