@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-ink: #1b1613;
+  --color-paper: #e9e0ce;
+  --color-oxide: #8c3324;
+  --color-faded: rgba(27, 22, 19, 0.65);
+  --color-line: rgba(27, 22, 19, 0.18);
+  --color-field: rgba(27, 22, 19, 0.35);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--color-ink);
+  --color-paper: var(--color-paper);
+  --color-oxide: var(--color-oxide);
+  --color-faded: var(--color-faded);
+  --color-line: var(--color-line);
+  --color-field: var(--color-field);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  position: relative;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans), sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.7;
+  background-image: repeating-radial-gradient(
+    circle at 0 0,
+    rgba(27, 22, 19, 0.06) 0,
+    rgba(27, 22, 19, 0.06) 1px,
+    transparent 1px,
+    transparent 5px
+  );
 }

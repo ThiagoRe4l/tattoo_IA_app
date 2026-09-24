@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import Home from "./page";
@@ -23,13 +23,40 @@ function preencherEGerar(
   });
 
   if (quantidade !== undefined) {
-    fireEvent.change(screen.getByLabelText(/quantidade/i), {
-      target: { value: String(quantidade) },
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: String(quantidade) })
+    );
   }
 
   fireEvent.click(screen.getByRole("button", { name: /^gerar$/i }));
 }
+
+describe("seletor de quantidade", () => {
+  it("comeca com 1 selecionado e troca o aria-pressed ao clicar em outro numero", () => {
+    render(<Home />);
+    const grupo = screen.getByRole("group", { name: /quantidade/i });
+
+    expect(within(grupo).getByRole("button", { name: "1" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(within(grupo).getByRole("button", { name: "3" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+
+    fireEvent.click(within(grupo).getByRole("button", { name: "3" }));
+
+    expect(within(grupo).getByRole("button", { name: "3" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(within(grupo).getByRole("button", { name: "1" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+  });
+});
 
 describe("Home", () => {
   it("envia prompt e quantidade pra /api/generate", async () => {

@@ -19,13 +19,16 @@ type Erro = {
   restantes?: number;
 };
 
+const QUANTIDADES = [1, 2, 3, 4] as const;
+const ROTACOES_CARTAO = ["-3deg", "2deg", "-1.5deg", "2.5deg"];
+
 function extensaoDoMimeType(mimeType: string): string {
   return mimeType.split("/")[1] || "png";
 }
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
-  const [quantidade, setQuantidade] = useState(1);
+  const [quantidade, setQuantidade] = useState<(typeof QUANTIDADES)[number]>(1);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -60,97 +63,115 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-zinc-50 px-4 py-10 font-sans dark:bg-black">
-      <div className="flex w-full max-w-3xl flex-col gap-6">
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+    <div className="flex flex-1 flex-col items-center px-4 py-10">
+      <div className="flex w-full max-w-5xl flex-col gap-6">
+        <p className="font-display text-[22px] font-bold">
+          Traço Re<span className="text-oxide">4</span>l
+        </p>
+
+        <h1 className="text-xl font-semibold text-ink">
           Gerar referências de tatuagem
         </h1>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-black"
-        >
-          <label
-            htmlFor="prompt"
-            className="text-sm font-medium text-zinc-600 dark:text-zinc-400"
+        <div className="border-t border-line" />
+
+        <div className="flex flex-col gap-10 lg:flex-row">
+          <form
+            onSubmit={handleSubmit}
+            className="flex w-full flex-col gap-4 lg:w-[520px] lg:shrink-0"
           >
-            Descreva a tatuagem
-          </label>
-          <textarea
-            id="prompt"
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            rows={4}
-            className="rounded border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-          />
+            <label
+              htmlFor="prompt"
+              className="text-sm font-medium text-faded"
+            >
+              Descreva a tatuagem
+            </label>
+            <textarea
+              id="prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              rows={4}
+              className="border-0 border-b-2 border-field bg-transparent px-1 py-2 text-ink outline-none focus:border-ink"
+            />
 
-          <label
-            htmlFor="quantidade"
-            className="text-sm font-medium text-zinc-600 dark:text-zinc-400"
-          >
-            Quantidade
-          </label>
-          <select
-            id="quantidade"
-            value={quantidade}
-            onChange={(event) => setQuantidade(Number(event.target.value))}
-            className="rounded border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
-          >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-            <option value={4}>4</option>
-          </select>
-
-          <button
-            type="submit"
-            disabled={carregando || prompt.trim().length === 0}
-            className="flex h-11 items-center justify-center rounded-full bg-foreground px-5 font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-          >
-            {carregando ? "Gerando..." : "Gerar"}
-          </button>
-        </form>
-
-        {erro && (
-          <p className="text-sm text-red-600">
-            {erro.mensagem}
-            {erro.restantes !== undefined &&
-              ` Restam ${erro.restantes} geração(ões) neste mês.`}
-          </p>
-        )}
-
-        {resultado && (
-          <div className="flex flex-col gap-4">
-            {resultado.aviso && (
-              <p className="text-sm text-amber-600">{resultado.aviso}</p>
-            )}
-
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {resultado.imagens.map((imagem, indice) => {
-                const dataUrl = `data:${imagem.mimeType};base64,${imagem.data}`;
-                const extensao = extensaoDoMimeType(imagem.mimeType);
-
-                return (
-                  <div key={indice} className="flex flex-col gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- imagem gerada em memoria (data URL), sem dominio remoto pra otimizar */}
-                    <img
-                      src={dataUrl}
-                      alt={`Tatuagem gerada ${indice + 1}`}
-                      className="rounded border border-black/[.08] dark:border-white/[.145]"
-                    />
-                    <a
-                      href={dataUrl}
-                      download={`tatuagem-${indice + 1}.${extensao}`}
-                      className="flex h-9 items-center justify-center rounded-full border border-black/[.08] px-4 text-sm font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.145] dark:text-zinc-50 dark:hover:bg-[#1a1a1a]"
-                    >
-                      Baixar
-                    </a>
-                  </div>
-                );
-              })}
+            <span className="text-sm font-medium text-faded">Quantidade</span>
+            <div role="group" aria-label="Quantidade" className="flex gap-2">
+              {QUANTIDADES.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-pressed={quantidade === n}
+                  onClick={() => setQuantidade(n)}
+                  className={`flex h-12 w-12 items-center justify-center border-2 border-ink text-base font-medium transition-colors ${
+                    quantidade === n ? "bg-ink text-paper" : "text-ink"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
             </div>
+
+            <button
+              type="submit"
+              disabled={carregando || prompt.trim().length === 0}
+              className="flex h-11 items-center justify-center rounded bg-oxide px-5 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {carregando ? "Gerando..." : "Gerar"}
+            </button>
+
+            {erro && (
+              <p className="text-sm text-oxide">
+                {erro.mensagem}
+                {erro.restantes !== undefined &&
+                  ` Restam ${erro.restantes} geração(ões) neste mês.`}
+              </p>
+            )}
+          </form>
+
+          <div className="flex-1">
+            {resultado && (
+              <div className="flex flex-col gap-4">
+                {resultado.aviso && (
+                  <p className="text-sm text-faded">{resultado.aviso}</p>
+                )}
+
+                <div className="grid grid-cols-2 gap-6">
+                  {resultado.imagens.map((imagem, indice) => {
+                    const dataUrl = `data:${imagem.mimeType};base64,${imagem.data}`;
+                    const extensao = extensaoDoMimeType(imagem.mimeType);
+                    const rotacao =
+                      ROTACOES_CARTAO[indice % ROTACOES_CARTAO.length];
+
+                    return (
+                      <div
+                        key={indice}
+                        className="relative flex flex-col gap-2 bg-[#FBF7EE] p-3 pb-4 shadow-md"
+                        style={{ transform: `rotate(${rotacao})` }}
+                      >
+                        <div className="absolute -top-3 left-1/2 h-5 w-14 -translate-x-1/2 rotate-[-6deg] bg-[rgba(138,127,108,0.55)]" />
+
+                        {/* eslint-disable-next-line @next/next/no-img-element -- imagem gerada em memoria (data URL), sem dominio remoto pra otimizar */}
+                        <img
+                          src={dataUrl}
+                          alt={`Tatuagem gerada ${indice + 1}`}
+                          className="w-full"
+                        />
+
+                        <a
+                          href={dataUrl}
+                          download={`tatuagem-${indice + 1}.${extensao}`}
+                          className="text-center text-sm font-medium text-oxide underline"
+                        >
+                          Baixar
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

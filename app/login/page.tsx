@@ -34,19 +34,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div className="flex flex-1 items-center justify-center px-4">
       <form
         onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-8 dark:border-white/[.145] dark:bg-black"
+        className="flex w-full max-w-sm flex-col gap-4"
       >
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
-          Acesso do estúdio
-        </h1>
+        <p className="font-display text-[22px] font-bold">
+          Traço Re<span className="text-oxide">4</span>l
+        </p>
 
-        <label
-          htmlFor="codigo"
-          className="text-sm font-medium text-zinc-600 dark:text-zinc-400"
-        >
+        <h1 className="text-xl font-semibold text-ink">Acesso do estúdio</h1>
+
+        <label htmlFor="codigo" className="text-sm font-medium text-faded">
           Código de acesso
         </label>
         <input
@@ -54,16 +53,16 @@ export default function LoginPage() {
           type="password"
           value={codigo}
           onChange={(event) => setCodigo(event.target.value)}
-          className="rounded border border-black/[.08] px-3 py-2 text-black dark:border-white/[.145] dark:text-zinc-50"
+          className="border-0 border-b-2 border-field bg-transparent px-1 py-2 text-ink outline-none focus:border-ink"
           autoFocus
         />
 
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
+        {erro && <p className="text-sm text-oxide">{erro}</p>}
 
         <button
           type="submit"
           disabled={enviando}
-          className="flex h-11 items-center justify-center rounded-full bg-foreground px-5 font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+          className="flex h-11 items-center justify-center rounded bg-oxide px-5 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           Entrar
         </button>
