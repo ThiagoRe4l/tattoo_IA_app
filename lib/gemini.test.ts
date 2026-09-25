@@ -24,12 +24,13 @@ describe("generateImage", () => {
       output_image: { data: "base64-fake", mime_type: "image/png" },
     });
 
-    const imagem = await generateImage("um dragao em aquarela");
+    const imagem = await generateImage("um dragao em aquarela", "9:16");
 
     expect(imagem).toEqual({ data: "base64-fake", mimeType: "image/png" });
     expect(createMock).toHaveBeenCalledWith({
       model: "gemini-3.1-flash-image",
       input: "um dragao em aquarela",
+      response_format: { type: "image", aspect_ratio: "9:16" },
     });
   });
 
@@ -39,16 +40,31 @@ describe("generateImage", () => {
       output_image: { data: "base64-fake" },
     });
 
-    const imagem = await generateImage("prompt");
+    const imagem = await generateImage("prompt", "1:1");
 
     expect(imagem.mimeType).toBe("image/png");
+  });
+
+  it("repassa a proporcao pedida pro response_format da interaction", async () => {
+    process.env.GEMINI_API_KEY = "chave-de-teste";
+    createMock.mockResolvedValueOnce({
+      output_image: { data: "base64-fake", mime_type: "image/png" },
+    });
+
+    await generateImage("prompt", "16:9");
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        response_format: { type: "image", aspect_ratio: "16:9" },
+      })
+    );
   });
 
   it("lanca erro quando a interaction nao retorna output_image", async () => {
     process.env.GEMINI_API_KEY = "chave-de-teste";
     createMock.mockResolvedValueOnce({});
 
-    await expect(generateImage("prompt")).rejects.toThrow(
+    await expect(generateImage("prompt", "1:1")).rejects.toThrow(
       "Gemini não retornou imagem"
     );
   });
@@ -56,7 +72,7 @@ describe("generateImage", () => {
   it("lanca erro quando GEMINI_API_KEY nao esta configurado", async () => {
     delete process.env.GEMINI_API_KEY;
 
-    await expect(generateImage("prompt")).rejects.toThrow(
+    await expect(generateImage("prompt", "1:1")).rejects.toThrow(
       "GEMINI_API_KEY não configurado"
     );
     expect(createMock).not.toHaveBeenCalled();

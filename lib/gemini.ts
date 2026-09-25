@@ -2,6 +2,8 @@ import { GoogleGenAI } from "@google/genai";
 
 const MODEL = "gemini-3.1-flash-image";
 
+export type Proporcao = "9:16" | "1:1" | "16:9";
+
 export type GeneratedImage = {
   data: string;
   mimeType: string;
@@ -17,12 +19,16 @@ function getClient() {
   return new GoogleGenAI({ apiKey });
 }
 
-export async function generateImage(prompt: string): Promise<GeneratedImage> {
+export async function generateImage(
+  prompt: string,
+  proporcao: Proporcao
+): Promise<GeneratedImage> {
   const ai = getClient();
 
   const interaction = await ai.interactions.create({
     model: MODEL,
     input: prompt,
+    response_format: { type: "image", aspect_ratio: proporcao },
   });
 
   const image = interaction.output_image;

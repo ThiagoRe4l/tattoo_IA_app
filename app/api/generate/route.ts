@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateImage } from "@/lib/gemini";
+import { generateImage, type Proporcao } from "@/lib/gemini";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 import { checkQuota, releaseUsage, reserveUsage } from "@/lib/usage";
 
 const QUANTIDADE_MIN = 1;
 const QUANTIDADE_MAX = 4;
+const PROPORCOES: Proporcao[] = ["9:16", "1:1", "16:9"];
 
 type ImagemGerada = {
   data: string;
@@ -15,6 +16,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const prompt = body?.prompt;
   const quantidade = body?.quantidade;
+  const proporcao = body?.proporcao;
 
   if (typeof prompt !== "string" || prompt.trim().length === 0) {
     return NextResponse.json({ error: "Prompt obrigatório" }, { status: 400 });
@@ -30,6 +32,13 @@ export async function POST(request: NextRequest) {
       {
         error: `quantidade deve ser um número inteiro entre ${QUANTIDADE_MIN} e ${QUANTIDADE_MAX}`,
       },
+      { status: 400 }
+    );
+  }
+
+  if (!PROPORCOES.includes(proporcao)) {
+    return NextResponse.json(
+      { error: `proporcao deve ser uma de: ${PROPORCOES.join(", ")}` },
       { status: 400 }
     );
   }
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
 
   for (const id of reservados) {
     try {
-      imagens.push(await generateImage(prompt));
+      imagens.push(await generateImage(prompt, proporcao));
     } catch (error) {
       console.error("Erro ao gerar imagem:", error);
       idsFalhos.push(id);

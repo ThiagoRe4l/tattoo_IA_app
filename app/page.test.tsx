@@ -14,9 +14,9 @@ afterEach(() => {
 });
 
 function preencherEGerar(
-  options: { prompt?: string; quantidade?: number } = {}
+  options: { prompt?: string; quantidade?: number; proporcao?: string } = {}
 ) {
-  const { prompt = "um dragão em aquarela", quantidade } = options;
+  const { prompt = "um dragão em aquarela", quantidade, proporcao } = options;
 
   fireEvent.change(screen.getByLabelText(/descreva a tatuagem/i), {
     target: { value: prompt },
@@ -26,6 +26,10 @@ function preencherEGerar(
     fireEvent.click(
       screen.getByRole("button", { name: String(quantidade) })
     );
+  }
+
+  if (proporcao !== undefined) {
+    fireEvent.click(screen.getByRole("button", { name: proporcao }));
   }
 
   fireEvent.click(screen.getByRole("button", { name: /^gerar$/i }));
@@ -58,8 +62,31 @@ describe("seletor de quantidade", () => {
   });
 });
 
+describe("seletor de proporção", () => {
+  it("comeca com Retrato selecionado e troca o aria-pressed ao clicar em outra opcao", () => {
+    render(<Home />);
+    const grupo = screen.getByRole("group", { name: /proporção/i });
+
+    expect(
+      within(grupo).getByRole("button", { name: "Retrato" })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(grupo).getByRole("button", { name: "Paisagem" })
+    ).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(within(grupo).getByRole("button", { name: "Paisagem" }));
+
+    expect(
+      within(grupo).getByRole("button", { name: "Paisagem" })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(grupo).getByRole("button", { name: "Retrato" })
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
 describe("Home", () => {
-  it("envia prompt e quantidade pra /api/generate", async () => {
+  it("envia prompt, quantidade e proporcao pra /api/generate", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -72,14 +99,47 @@ describe("Home", () => {
     );
 
     render(<Home />);
-    preencherEGerar({ prompt: "um dragão em aquarela", quantidade: 2 });
+    preencherEGerar({
+      prompt: "um dragão em aquarela",
+      quantidade: 2,
+      proporcao: "Paisagem",
+    });
 
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(
         "/api/generate",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ prompt: "um dragão em aquarela", quantidade: 2 }),
+          body: JSON.stringify({
+            prompt: "um dragão em aquarela",
+            quantidade: 2,
+            proporcao: "16:9",
+          }),
+        })
+      )
+    );
+  });
+
+  it("usa 9:16 (Retrato) como proporcao padrao quando nao muda a selecao", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ imagens: [], solicitadas: 1, geradas: 0 }),
+        { status: 200 }
+      )
+    );
+
+    render(<Home />);
+    preencherEGerar();
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/generate",
+        expect.objectContaining({
+          body: JSON.stringify({
+            prompt: "um dragão em aquarela",
+            quantidade: 1,
+            proporcao: "9:16",
+          }),
         })
       )
     );

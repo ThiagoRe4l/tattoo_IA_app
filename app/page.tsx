@@ -20,6 +20,11 @@ type Erro = {
 };
 
 const QUANTIDADES = [1, 2, 3, 4] as const;
+const PROPORCOES = [
+  { valor: "9:16", rotulo: "Retrato" },
+  { valor: "1:1", rotulo: "Quadrado" },
+  { valor: "16:9", rotulo: "Paisagem" },
+] as const;
 const ROTACOES_CARTAO = ["-3deg", "2deg", "-1.5deg", "2.5deg"];
 
 function extensaoDoMimeType(mimeType: string): string {
@@ -29,6 +34,8 @@ function extensaoDoMimeType(mimeType: string): string {
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [quantidade, setQuantidade] = useState<(typeof QUANTIDADES)[number]>(1);
+  const [proporcao, setProporcao] =
+    useState<(typeof PROPORCOES)[number]["valor"]>("9:16");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -43,7 +50,7 @@ export default function Home() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, quantidade }),
+        body: JSON.stringify({ prompt, quantidade, proporcao }),
       });
 
       const body = await response.json().catch(() => null);
@@ -107,6 +114,23 @@ export default function Home() {
                   }`}
                 >
                   {n}
+                </button>
+              ))}
+            </div>
+
+            <span className="text-sm font-medium text-faded">Proporção</span>
+            <div role="group" aria-label="Proporção" className="flex gap-2">
+              {PROPORCOES.map(({ valor, rotulo }) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={proporcao === valor}
+                  onClick={() => setProporcao(valor)}
+                  className={`flex h-12 items-center justify-center border-2 border-ink px-4 text-sm font-medium transition-colors ${
+                    proporcao === valor ? "bg-ink text-paper" : "text-ink"
+                  }`}
+                >
+                  {rotulo}
                 </button>
               ))}
             </div>
