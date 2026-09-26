@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: `Cota insuficiente para gerar ${quantidade} imagem(ns). Restam ${restantes} geração(ões) neste mês.`,
+        error: `Cota insuficiente para gerar ${quantidade} imagem(ns).`,
         restantes,
       },
       { status: 409 }
