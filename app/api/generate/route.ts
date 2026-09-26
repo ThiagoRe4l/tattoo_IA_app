@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateImage, type Proporcao } from "@/lib/gemini";
+import { montarPromptFinal } from "@/lib/prompts";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 import { checkQuota, releaseUsage, reserveUsage } from "@/lib/usage";
 
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
 
   for (const id of reservados) {
     try {
-      imagens.push(await generateImage(prompt, proporcao));
+      imagens.push(await generateImage(montarPromptFinal(prompt), proporcao));
     } catch (error) {
       console.error("Erro ao gerar imagem:", error);
       idsFalhos.push(id);

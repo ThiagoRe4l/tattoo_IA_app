@@ -170,7 +170,10 @@ describe("POST /api/generate", () => {
     expect(json.imagens).toHaveLength(2);
     expect(json.aviso).toBeUndefined();
     expect(releaseUsageMock).not.toHaveBeenCalled();
-    expect(generateImageMock).toHaveBeenCalledWith("um gato", "16:9");
+    expect(generateImageMock).toHaveBeenCalledWith(
+      "Uma tatuagem em papel fotográfico branco brilhante de: um gato",
+      "16:9"
+    );
   });
 
   it("libera as reservas nao usadas e avisa quando parte das geracoes falha", async () => {
