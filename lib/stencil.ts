@@ -17,7 +17,7 @@ const SOBEL_Y = [
 export const LIMIAR_PADRAO = 100;
 
 function calcularLuminancia(
-  pixels: Uint8ClampedArray,
+  pixels: Uint8ClampedArray<ArrayBuffer>,
   largura: number,
   altura: number
 ): Float32Array {
@@ -51,11 +51,11 @@ function amostrarComClamp(
  * pixels onde a magnitude do gradiente de Sobel (borda) passa do limiar.
  */
 export function binarizarPorBordas(
-  pixels: Uint8ClampedArray,
+  pixels: Uint8ClampedArray<ArrayBuffer>,
   largura: number,
   altura: number,
   limiar: number = LIMIAR_PADRAO
-): Uint8ClampedArray {
+): Uint8ClampedArray<ArrayBuffer> {
   const luminancia = calcularLuminancia(pixels, largura, altura);
   const resultado = new Uint8ClampedArray(pixels.length);
 

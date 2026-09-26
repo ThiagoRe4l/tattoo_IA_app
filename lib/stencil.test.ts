@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { binarizarPorBordas, LIMIAR_PADRAO } from "./stencil";
 
 function criarFixturePretoBranco(): {
-  pixels: Uint8ClampedArray;
+  pixels: Uint8ClampedArray<ArrayBuffer>;
   largura: number;
   altura: number;
 } {
