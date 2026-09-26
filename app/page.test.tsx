@@ -63,24 +63,24 @@ describe("seletor de quantidade", () => {
 });
 
 describe("seletor de proporção", () => {
-  it("comeca com Retrato selecionado e troca o aria-pressed ao clicar em outra opcao", () => {
+  it("comeca com 9:16 selecionado e troca o aria-pressed ao clicar em outra opcao", () => {
     render(<Home />);
     const grupo = screen.getByRole("group", { name: /proporção/i });
 
     expect(
-      within(grupo).getByRole("button", { name: "Retrato" })
+      within(grupo).getByRole("button", { name: "9:16" })
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      within(grupo).getByRole("button", { name: "Paisagem" })
+      within(grupo).getByRole("button", { name: "16:9" })
     ).toHaveAttribute("aria-pressed", "false");
 
-    fireEvent.click(within(grupo).getByRole("button", { name: "Paisagem" }));
+    fireEvent.click(within(grupo).getByRole("button", { name: "16:9" }));
 
     expect(
-      within(grupo).getByRole("button", { name: "Paisagem" })
+      within(grupo).getByRole("button", { name: "16:9" })
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      within(grupo).getByRole("button", { name: "Retrato" })
+      within(grupo).getByRole("button", { name: "9:16" })
     ).toHaveAttribute("aria-pressed", "false");
   });
 });
@@ -102,7 +102,7 @@ describe("Home", () => {
     preencherEGerar({
       prompt: "um dragão em aquarela",
       quantidade: 2,
-      proporcao: "Paisagem",
+      proporcao: "16:9",
     });
 
     await waitFor(() =>
@@ -120,7 +120,7 @@ describe("Home", () => {
     );
   });
 
-  it("usa 9:16 (Retrato) como proporcao padrao quando nao muda a selecao", async () => {
+  it("usa 9:16 como proporcao padrao quando nao muda a selecao", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
       new Response(
         JSON.stringify({ imagens: [], solicitadas: 1, geradas: 0 }),

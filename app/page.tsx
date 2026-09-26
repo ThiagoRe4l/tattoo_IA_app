@@ -20,11 +20,7 @@ type Erro = {
 };
 
 const QUANTIDADES = [1, 2, 3, 4] as const;
-const PROPORCOES = [
-  { valor: "9:16", rotulo: "Retrato" },
-  { valor: "1:1", rotulo: "Quadrado" },
-  { valor: "16:9", rotulo: "Paisagem" },
-] as const;
+const PROPORCOES = ["9:16", "1:1", "16:9"] as const;
 const ROTACOES_CARTAO = ["-3deg", "2deg", "-1.5deg", "2.5deg"];
 
 function extensaoDoMimeType(mimeType: string): string {
@@ -35,7 +31,7 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [quantidade, setQuantidade] = useState<(typeof QUANTIDADES)[number]>(1);
   const [proporcao, setProporcao] =
-    useState<(typeof PROPORCOES)[number]["valor"]>("9:16");
+    useState<(typeof PROPORCOES)[number]>("9:16");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -120,7 +116,7 @@ export default function Home() {
 
             <span className="text-sm font-medium text-faded">Proporção</span>
             <div role="group" aria-label="Proporção" className="flex gap-2">
-              {PROPORCOES.map(({ valor, rotulo }) => (
+              {PROPORCOES.map((valor) => (
                 <button
                   key={valor}
                   type="button"
@@ -130,7 +126,7 @@ export default function Home() {
                     proporcao === valor ? "bg-ink text-paper" : "text-ink"
                   }`}
                 >
-                  {rotulo}
+                  {valor}
                 </button>
               ))}
             </div>
