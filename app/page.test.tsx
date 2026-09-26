@@ -240,3 +240,142 @@ describe("Home", () => {
     expect(await screen.findByText(/restam 2/i)).toBeInTheDocument();
   });
 });
+
+describe("popup de imagem", () => {
+  async function gerarLoteDeDuas() {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          imagens: [
+            { data: "img-a", mimeType: "image/png" },
+            { data: "img-b", mimeType: "image/png" },
+          ],
+          solicitadas: 2,
+          geradas: 2,
+        }),
+        { status: 200 }
+      )
+    );
+
+    render(<Home />);
+    preencherEGerar({
+      prompt: "um dragão em aquarela",
+      quantidade: 2,
+      proporcao: "16:9",
+    });
+
+    await screen.findAllByRole("img");
+  }
+
+  it("abre o popup com a imagem, prompt e proporcao usados naquela geracao", async () => {
+    await gerarLoteDeDuas();
+
+    const imagensDoGrid = screen.getAllByRole("img");
+    fireEvent.click(imagensDoGrid[1]);
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("img")).toHaveAttribute(
+      "src",
+      "data:image/png;base64,img-b"
+    );
+    expect(within(dialog).getByText("um dragão em aquarela")).toBeInTheDocument();
+  });
+
+  it("gerar novamente substitui so a imagem do indice clicado, sem afetar as outras", async () => {
+    await gerarLoteDeDuas();
+
+    const imagensDoGrid = screen.getAllByRole("img");
+    fireEvent.click(imagensDoGrid[1]);
+
+    const dialog = await screen.findByRole("dialog");
+
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          imagens: [{ data: "img-b-nova", mimeType: "image/png" }],
+          solicitadas: 1,
+          geradas: 1,
+        }),
+        { status: 200 }
+      )
+    );
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /gerar novamente/i })
+    );
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenLastCalledWith(
+        "/api/generate",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            prompt: "um dragão em aquarela",
+            quantidade: 1,
+            proporcao: "16:9",
+          }),
+        })
+      )
+    );
+
+    await waitFor(() =>
+      expect(within(dialog).getByRole("img")).toHaveAttribute(
+        "src",
+        "data:image/png;base64,img-b-nova"
+      )
+    );
+
+    const todasImagens = screen.getAllByRole("img");
+    const comImgBNova = todasImagens.filter((img) =>
+      img.getAttribute("src")?.includes("img-b-nova")
+    );
+    const comImgA = todasImagens.filter((img) =>
+      img.getAttribute("src")?.includes("img-a")
+    );
+
+    // uma no grid (indice 1) + uma no popup
+    expect(comImgBNova).toHaveLength(2);
+    // a imagem do indice 0 permanece intacta, so no grid (popup nao a mostra)
+    expect(comImgA).toHaveLength(1);
+  });
+
+  it("mostra erro dentro do popup sem fechar quando gerar novamente falha", async () => {
+    await gerarLoteDeDuas();
+
+    const imagensDoGrid = screen.getAllByRole("img");
+    fireEvent.click(imagensDoGrid[0]);
+
+    const dialog = await screen.findByRole("dialog");
+
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ error: "Falha ao gerar as imagens. Tente novamente." }),
+        { status: 502 }
+      )
+    );
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /gerar novamente/i })
+    );
+
+    expect(
+      await within(dialog).findByText(/falha ao gerar as imagens/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(within(dialog).getByRole("img")).toHaveAttribute(
+      "src",
+      "data:image/png;base64,img-a"
+    );
+  });
+
+  it("fecha o popup ao apertar Esc", async () => {
+    await gerarLoteDeDuas();
+
+    fireEvent.click(screen.getAllByRole("img")[0]);
+    await screen.findByRole("dialog");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});

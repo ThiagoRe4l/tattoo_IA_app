@@ -1,17 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import ImagemPopup, { type ImagemComMetadados } from "./ImagemPopup";
 
 type ImagemGerada = {
   data: string;
   mimeType: string;
-};
-
-type Resultado = {
-  imagens: ImagemGerada[];
-  solicitadas: number;
-  geradas: number;
-  aviso?: string;
 };
 
 type Erro = {
@@ -34,12 +28,19 @@ export default function Home() {
     useState<(typeof PROPORCOES)[number]>("9:16");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
-  const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [imagens, setImagens] = useState<ImagemComMetadados[]>([]);
+  const [avisoLote, setAvisoLote] = useState<string | undefined>();
+  const [indicePopup, setIndicePopup] = useState<number | null>(null);
+  const [regenerandoIndice, setRegenerandoIndice] = useState<number | null>(
+    null
+  );
+  const [erroPopup, setErroPopup] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setErro(null);
-    setResultado(null);
+    setImagens([]);
+    setAvisoLote(undefined);
     setCarregando(true);
 
     try {
@@ -59,9 +60,51 @@ export default function Home() {
         return;
       }
 
-      setResultado(body);
+      const novasImagens: ImagemComMetadados[] = (
+        body.imagens as ImagemGerada[]
+      ).map((imagem) => ({ ...imagem, prompt, proporcao }));
+
+      setImagens(novasImagens);
+      setAvisoLote(body.aviso);
     } finally {
       setCarregando(false);
+    }
+  }
+
+  async function handleRegenerar(indice: number) {
+    const imagem = imagens[indice];
+    setRegenerandoIndice(indice);
+    setErroPopup(null);
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: imagem.prompt,
+          quantidade: 1,
+          proporcao: imagem.proporcao,
+        }),
+      });
+
+      const body = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setErroPopup(body?.error ?? "Não foi possível gerar a imagem");
+        return;
+      }
+
+      const novaImagem: ImagemComMetadados = {
+        ...(body.imagens[0] as ImagemGerada),
+        prompt: imagem.prompt,
+        proporcao: imagem.proporcao,
+      };
+
+      setImagens((atual) =>
+        atual.map((img, i) => (i === indice ? novaImagem : img))
+      );
+    } finally {
+      setRegenerandoIndice(null);
     }
   }
 
@@ -149,14 +192,14 @@ export default function Home() {
           </form>
 
           <div className="flex-1">
-            {resultado && (
+            {imagens.length > 0 && (
               <div className="flex flex-col gap-4">
-                {resultado.aviso && (
-                  <p className="text-sm text-faded">{resultado.aviso}</p>
+                {avisoLote && (
+                  <p className="text-sm text-faded">{avisoLote}</p>
                 )}
 
                 <div className="grid grid-cols-2 gap-6">
-                  {resultado.imagens.map((imagem, indice) => {
+                  {imagens.map((imagem, indice) => {
                     const dataUrl = `data:${imagem.mimeType};base64,${imagem.data}`;
                     const extensao = extensaoDoMimeType(imagem.mimeType);
                     const rotacao =
@@ -170,12 +213,21 @@ export default function Home() {
                       >
                         <div className="absolute -top-3 left-1/2 h-5 w-14 -translate-x-1/2 rotate-[-6deg] bg-[rgba(138,127,108,0.55)]" />
 
-                        {/* eslint-disable-next-line @next/next/no-img-element -- imagem gerada em memoria (data URL), sem dominio remoto pra otimizar */}
-                        <img
-                          src={dataUrl}
-                          alt={`Tatuagem gerada ${indice + 1}`}
-                          className="w-full"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setErroPopup(null);
+                            setIndicePopup(indice);
+                          }}
+                          className="cursor-zoom-in"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- imagem gerada em memoria (data URL), sem dominio remoto pra otimizar */}
+                          <img
+                            src={dataUrl}
+                            alt={`Tatuagem gerada ${indice + 1}`}
+                            className="w-full"
+                          />
+                        </button>
 
                         <a
                           href={dataUrl}
@@ -193,6 +245,17 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {indicePopup !== null && (
+        <ImagemPopup
+          imagem={imagens[indicePopup]}
+          indice={indicePopup}
+          carregando={regenerandoIndice === indicePopup}
+          erro={erroPopup}
+          onClose={() => setIndicePopup(null)}
+          onRegenerar={() => handleRegenerar(indicePopup)}
+        />
+      )}
     </div>
   );
 }
