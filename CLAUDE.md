@@ -42,8 +42,8 @@ mudança de escopo.
   assuma e siga.
 - Commits pequenos e descritivos, um por unidade lógica de mudança.
   Nunca um `git add .` genérico.
-- `main` só recebe commit com `npm test` e `npm run lint` passando.
-  Rode os dois antes de qualquer commit.
+- `main` só recebe commit com `npm test`, `npm run lint` e
+  `npx tsc --noEmit` passando. Rode os três antes de qualquer commit.
 - Nunca commitar sem antes mostrar o conteúdo completo dos arquivos
   alterados e receber aprovação explícita. Um resumo do que foi feito
   não substitui a revisão do código real — sempre cola o arquivo
@@ -53,7 +53,6 @@ mudança de escopo.
 
 - Histórico ou galeria de imagens geradas
 - Editor de imagem com IA
-- Gerador de stencil
 - Múltiplos temas visuais
 - Multi-tenant / marca por estúdio
 
