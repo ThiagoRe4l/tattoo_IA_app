@@ -44,6 +44,10 @@ mudança de escopo.
   Nunca um `git add .` genérico.
 - `main` só recebe commit com `npm test` e `npm run lint` passando.
   Rode os dois antes de qualquer commit.
+- Nunca commitar sem antes mostrar o conteúdo completo dos arquivos
+  alterados e receber aprovação explícita. Um resumo do que foi feito
+  não substitui a revisão do código real — sempre cola o arquivo
+  inteiro, não um diff nem uma descrição.
 
 ## Fora de escopo (não implementar sem pedido explícito)
 
