@@ -76,7 +76,7 @@ export default function ImagemPopup({
     >
       <div
         onClick={(event) => event.stopPropagation()}
-        className="relative flex w-full max-w-2xl flex-col gap-4 bg-[#FBF7EE] p-6"
+        className="relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-4 overflow-y-auto bg-[#FBF7EE] p-6"
       >
         <button
           type="button"
@@ -88,12 +88,12 @@ export default function ImagemPopup({
         </button>
 
         <div className="flex gap-4">
-          <div className="flex flex-1 flex-col gap-2">
+          <div className="flex flex-1 flex-col items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element -- imagem gerada em memoria (data URL), sem dominio remoto pra otimizar */}
             <img
               src={dataUrl}
               alt={`Tatuagem gerada ${indice + 1}`}
-              className="w-full"
+              className="max-h-[60vh] w-auto max-w-full object-contain"
             />
             <a
               href={dataUrl}
@@ -105,12 +105,12 @@ export default function ImagemPopup({
           </div>
 
           {stencil && (
-            <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-1 flex-col items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- imagem gerada em memoria (data URL), sem dominio remoto pra otimizar */}
               <img
                 src={stencil}
                 alt={`Stencil da tatuagem ${indice + 1}`}
-                className="w-full"
+                className="max-h-[60vh] w-auto max-w-full object-contain"
               />
               <a
                 href={stencil}
