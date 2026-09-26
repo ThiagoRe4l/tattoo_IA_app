@@ -3,10 +3,15 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const { gerarStencilMock } = vi.hoisted(() => ({ gerarStencilMock: vi.fn() }));
+
+vi.mock("@/lib/stencil", () => ({ gerarStencil: gerarStencilMock }));
+
 import ImagemPopup from "./ImagemPopup";
 
 afterEach(() => {
   cleanup();
+  gerarStencilMock.mockReset();
 });
 
 function renderPopup(overrides: Partial<Parameters<typeof ImagemPopup>[0]> = {}) {
@@ -102,5 +107,49 @@ describe("ImagemPopup", () => {
       screen.getByText(/falha ao gerar as imagens/i)
     ).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("gera e mostra o stencil ao lado da imagem original, com link de download proprio", async () => {
+    gerarStencilMock.mockResolvedValueOnce("data:image/png;base64,stencilfake");
+
+    renderPopup();
+
+    fireEvent.click(screen.getByRole("button", { name: /gerar stencil/i }));
+
+    const stencilImg = await screen.findByRole("img", {
+      name: /stencil da tatuagem 1/i,
+    });
+    expect(stencilImg).toHaveAttribute(
+      "src",
+      "data:image/png;base64,stencilfake"
+    );
+
+    const linkStencil = screen.getByRole("link", { name: /baixar stencil/i });
+    expect(linkStencil).toHaveAttribute(
+      "href",
+      "data:image/png;base64,stencilfake"
+    );
+    expect(linkStencil).toHaveAttribute("download", "tatuagem-1-stencil.png");
+
+    expect(screen.getByRole("img", { name: /tatuagem gerada 1/i })).toBeInTheDocument();
+    expect(gerarStencilMock).toHaveBeenCalledWith(
+      "data:image/png;base64,base64fake"
+    );
+  });
+
+  it("mostra erro do stencil sem fechar o popup quando gerarStencil falha", async () => {
+    gerarStencilMock.mockRejectedValueOnce(new Error("Falha ao gerar o stencil."));
+
+    renderPopup();
+
+    fireEvent.click(screen.getByRole("button", { name: /gerar stencil/i }));
+
+    expect(
+      await screen.findByText(/falha ao gerar o stencil/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: /stencil da tatuagem/i })
+    ).not.toBeInTheDocument();
   });
 });
