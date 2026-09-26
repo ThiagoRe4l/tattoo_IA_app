@@ -171,7 +171,7 @@ describe("POST /api/generate", () => {
     expect(json.aviso).toBeUndefined();
     expect(releaseUsageMock).not.toHaveBeenCalled();
     expect(generateImageMock).toHaveBeenCalledWith(
-      "Uma tatuagem em papel fotográfico branco brilhante de: um gato",
+      "Uma tatuagem em papel fotográfico branco brilhante de: um gato, sem fundo de estúdio",
       "16:9"
     );
   });
