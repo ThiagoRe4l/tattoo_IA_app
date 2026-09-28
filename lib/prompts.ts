@@ -2,14 +2,14 @@ import "server-only";
 import { ESTILOS_UI, type EstiloId } from "./estilos";
 
 export function montarPromptFinal(assunto: string): string {
-  return `Um design de tatuagem pronto para transferência de decalque, ${assunto}, em preto e cinza detalhado, impresso em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada.`;
+  return `Um design de tatuagem pronto para transferência de decalque, ${assunto}, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada.`;
 }
 
 const TECNICAS: Record<EstiloId, string> = {
   blackwork:
     "preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza",
   fineline:
-    "linhas extremamente finas e precisas, sem preenchimento sólido, traço delicado como desenho a lápis, sombreamento mínimo com pontilhado sutil onde fizer sentido",
+    "linhas extremamente finas e precisas, sem preenchimento sólido, traço delicado, sombreamento mínimo com pontilhado sutil onde fizer sentido",
   aquarela:
     "manchas de cor fluidas e translúcidas, respingos e escorridos de tinta, contornos soltos ou inexistentes, cores vibrantes se misturando nas bordas",
   "realismo-pb":
@@ -51,5 +51,5 @@ export function montarPromptComEstilo(
 
   const estilo = ESTILOS[estiloId as EstiloId];
 
-  return `Um design de tatuagem pronto para transferência de decalque em estilo ${estilo.rotulo}: ${estilo.tecnica}. ${assunto}. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Impresso em fundo branco puro.`;
+  return `Um design de tatuagem pronto para transferência de decalque em estilo ${estilo.rotulo}: ${estilo.tecnica}. ${assunto}. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Em fundo branco puro.`;
 }

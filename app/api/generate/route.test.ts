@@ -198,7 +198,7 @@ describe("POST /api/generate", () => {
     expect(json.aviso).toBeUndefined();
     expect(releaseUsageMock).not.toHaveBeenCalled();
     expect(generateImageMock).toHaveBeenCalledWith(
-      "Um design de tatuagem pronto para transferência de decalque, um gato, em preto e cinza detalhado, impresso em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada.",
+      "Um design de tatuagem pronto para transferência de decalque, um gato, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada.",
       "16:9"
     );
   });
@@ -216,7 +216,7 @@ describe("POST /api/generate", () => {
 
     expect(response.status).toBe(200);
     expect(generateImageMock).toHaveBeenCalledWith(
-      'Um design de tatuagem pronto para transferência de decalque em estilo Blackwork: preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza. um gato. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Impresso em fundo branco puro.',
+      'Um design de tatuagem pronto para transferência de decalque em estilo Blackwork: preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza. um gato. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Em fundo branco puro.',
       "9:16"
     );
   });
