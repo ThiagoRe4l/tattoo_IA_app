@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import ImagemPopup, { type ImagemComMetadados } from "./ImagemPopup";
-import { ESTILOS } from "@/lib/prompts";
+import { ESTILOS_UI } from "@/lib/estilos";
 
 type ImagemGerada = {
   data: string;
@@ -148,7 +148,7 @@ export default function Home() {
               Estilo (opcional)
             </span>
             <div role="group" aria-label="Estilo" className="flex flex-wrap gap-2">
-              {Object.entries(ESTILOS).map(([id, { rotulo }]) => (
+              {ESTILOS_UI.map(({ id, rotulo }) => (
                 <button
                   key={id}
                   type="button"

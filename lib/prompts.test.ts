@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { montarPromptComEstilo, montarPromptFinal } from "./prompts";
+import { ESTILOS_UI } from "./estilos";
+import { ESTILOS, montarPromptComEstilo, montarPromptFinal } from "./prompts";
 
 describe("montarPromptFinal", () => {
   it("envolve o assunto no prompt base universal", () => {
@@ -42,4 +43,13 @@ describe("montarPromptComEstilo", () => {
       );
     }
   );
+});
+
+describe("ESTILOS", () => {
+  it("tem exatamente os mesmos ids que ESTILOS_UI, sem ficar dessincronizado", () => {
+    const idsUi = ESTILOS_UI.map((e) => e.id).sort();
+    const idsPrompts = Object.keys(ESTILOS).sort();
+
+    expect(idsPrompts).toEqual(idsUi);
+  });
 });
