@@ -9,6 +9,7 @@ export type ImagemComMetadados = {
   mimeType: string;
   prompt: string;
   proporcao: Proporcao;
+  estilo: string | null;
 };
 
 type Props = {

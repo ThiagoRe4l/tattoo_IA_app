@@ -14,9 +14,15 @@ afterEach(() => {
 });
 
 function preencherEGerar(
-  options: { prompt?: string; quantidade?: number; proporcao?: string } = {}
+  options: {
+    prompt?: string;
+    quantidade?: number;
+    proporcao?: string;
+    estilo?: string;
+  } = {}
 ) {
-  const { prompt = "um dragão em aquarela", quantidade, proporcao } = options;
+  const { prompt = "um dragão em aquarela", quantidade, proporcao, estilo } =
+    options;
 
   fireEvent.change(screen.getByLabelText(/descreva a tatuagem/i), {
     target: { value: prompt },
@@ -30,6 +36,10 @@ function preencherEGerar(
 
   if (proporcao !== undefined) {
     fireEvent.click(screen.getByRole("button", { name: proporcao }));
+  }
+
+  if (estilo !== undefined) {
+    fireEvent.click(screen.getByRole("button", { name: estilo }));
   }
 
   fireEvent.click(screen.getByRole("button", { name: /^gerar$/i }));
@@ -85,6 +95,49 @@ describe("seletor de proporção", () => {
   });
 });
 
+describe("seletor de estilo", () => {
+  it("comeca sem nenhum estilo selecionado", () => {
+    render(<Home />);
+    const grupo = screen.getByRole("group", { name: /^estilo$/i });
+
+    expect(
+      within(grupo).getByRole("button", { name: "Blackwork" })
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(grupo).getByRole("button", { name: "Aquarela" })
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("seleciona um estilo ao clicar e desmarca ao clicar de novo no mesmo", () => {
+    render(<Home />);
+    const grupo = screen.getByRole("group", { name: /^estilo$/i });
+    const botaoBlackwork = within(grupo).getByRole("button", {
+      name: "Blackwork",
+    });
+
+    fireEvent.click(botaoBlackwork);
+    expect(botaoBlackwork).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(botaoBlackwork);
+    expect(botaoBlackwork).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("selecionar um estilo diferente troca a selecao, sem manter os dois marcados", () => {
+    render(<Home />);
+    const grupo = screen.getByRole("group", { name: /^estilo$/i });
+
+    fireEvent.click(within(grupo).getByRole("button", { name: "Blackwork" }));
+    fireEvent.click(within(grupo).getByRole("button", { name: "Aquarela" }));
+
+    expect(
+      within(grupo).getByRole("button", { name: "Blackwork" })
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(grupo).getByRole("button", { name: "Aquarela" })
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
 describe("Home", () => {
   it("envia prompt, quantidade e proporcao pra /api/generate", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
@@ -114,6 +167,7 @@ describe("Home", () => {
             prompt: "um dragão em aquarela",
             quantidade: 2,
             proporcao: "16:9",
+            estilo: null,
           }),
         })
       )
@@ -139,6 +193,33 @@ describe("Home", () => {
             prompt: "um dragão em aquarela",
             quantidade: 1,
             proporcao: "9:16",
+            estilo: null,
+          }),
+        })
+      )
+    );
+  });
+
+  it("envia o id do estilo selecionado no corpo do POST", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ imagens: [], solicitadas: 1, geradas: 0 }),
+        { status: 200 }
+      )
+    );
+
+    render(<Home />);
+    preencherEGerar({ estilo: "Blackwork" });
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/generate",
+        expect.objectContaining({
+          body: JSON.stringify({
+            prompt: "um dragão em aquarela",
+            quantidade: 1,
+            proporcao: "9:16",
+            estilo: "blackwork",
           }),
         })
       )
@@ -313,6 +394,7 @@ describe("popup de imagem", () => {
             prompt: "um dragão em aquarela",
             quantidade: 1,
             proporcao: "16:9",
+            estilo: null,
           }),
         })
       )
@@ -337,6 +419,54 @@ describe("popup de imagem", () => {
     expect(comImgBNova).toHaveLength(2);
     // a imagem do indice 0 permanece intacta, so no grid (popup nao a mostra)
     expect(comImgA).toHaveLength(1);
+  });
+
+  it("gerar novamente reenvia o mesmo estilo usado na geracao original", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          imagens: [{ data: "img-a", mimeType: "image/png" }],
+          solicitadas: 1,
+          geradas: 1,
+        }),
+        { status: 200 }
+      )
+    );
+
+    render(<Home />);
+    preencherEGerar({ estilo: "Blackwork" });
+
+    fireEvent.click(await screen.findByRole("img"));
+    const dialog = await screen.findByRole("dialog");
+
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          imagens: [{ data: "img-a-nova", mimeType: "image/png" }],
+          solicitadas: 1,
+          geradas: 1,
+        }),
+        { status: 200 }
+      )
+    );
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /gerar novamente/i })
+    );
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenLastCalledWith(
+        "/api/generate",
+        expect.objectContaining({
+          body: JSON.stringify({
+            prompt: "um dragão em aquarela",
+            quantidade: 1,
+            proporcao: "9:16",
+            estilo: "blackwork",
+          }),
+        })
+      )
+    );
   });
 
   it("mostra erro dentro do popup sem fechar quando gerar novamente falha", async () => {

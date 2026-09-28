@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ImagemPopup, { type ImagemComMetadados } from "./ImagemPopup";
+import { ESTILOS } from "@/lib/prompts";
 
 type ImagemGerada = {
   data: string;
@@ -26,6 +27,7 @@ export default function Home() {
   const [quantidade, setQuantidade] = useState<(typeof QUANTIDADES)[number]>(1);
   const [proporcao, setProporcao] =
     useState<(typeof PROPORCOES)[number]>("9:16");
+  const [estilo, setEstilo] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
   const [imagens, setImagens] = useState<ImagemComMetadados[]>([]);
@@ -47,7 +49,7 @@ export default function Home() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, quantidade, proporcao }),
+        body: JSON.stringify({ prompt, quantidade, proporcao, estilo }),
       });
 
       const body = await response.json().catch(() => null);
@@ -62,7 +64,7 @@ export default function Home() {
 
       const novasImagens: ImagemComMetadados[] = (
         body.imagens as ImagemGerada[]
-      ).map((imagem) => ({ ...imagem, prompt, proporcao }));
+      ).map((imagem) => ({ ...imagem, prompt, proporcao, estilo }));
 
       setImagens(novasImagens);
       setAvisoLote(body.aviso);
@@ -84,6 +86,7 @@ export default function Home() {
           prompt: imagem.prompt,
           quantidade: 1,
           proporcao: imagem.proporcao,
+          estilo: imagem.estilo,
         }),
       });
 
@@ -98,6 +101,7 @@ export default function Home() {
         ...(body.imagens[0] as ImagemGerada),
         prompt: imagem.prompt,
         proporcao: imagem.proporcao,
+        estilo: imagem.estilo,
       };
 
       setImagens((atual) =>
@@ -139,6 +143,27 @@ export default function Home() {
               rows={4}
               className="border-0 border-b-2 border-field bg-transparent px-1 py-2 text-ink outline-none focus:border-ink"
             />
+
+            <span className="text-sm font-medium text-faded">
+              Estilo (opcional)
+            </span>
+            <div role="group" aria-label="Estilo" className="flex flex-wrap gap-2">
+              {Object.entries(ESTILOS).map(([id, { rotulo }]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={estilo === id}
+                  onClick={() =>
+                    setEstilo((atual) => (atual === id ? null : id))
+                  }
+                  className={`flex h-12 items-center justify-center border-2 border-ink px-4 text-sm font-medium transition-colors ${
+                    estilo === id ? "bg-ink text-paper" : "text-ink"
+                  }`}
+                >
+                  {rotulo}
+                </button>
+              ))}
+            </div>
 
             <span className="text-sm font-medium text-faded">Quantidade</span>
             <div role="group" aria-label="Quantidade" className="flex gap-2">

@@ -93,6 +93,33 @@ describe("POST /api/generate", () => {
     expect(reserveUsageMock).not.toHaveBeenCalled();
   });
 
+  it("retorna 400 quando estilo nao e uma chave valida de ESTILOS", async () => {
+    const response = await postGenerate({
+      prompt: "um gato",
+      quantidade: 1,
+      proporcao: "9:16",
+      estilo: "cubista",
+    });
+
+    expect(response.status).toBe(400);
+    expect(reserveUsageMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["constructor", "toString"])(
+    "retorna 400 quando estilo e uma chave herdada de Object.prototype (%s)",
+    async (estiloInvalido) => {
+      const response = await postGenerate({
+        prompt: "um gato",
+        quantidade: 1,
+        proporcao: "9:16",
+        estilo: estiloInvalido,
+      });
+
+      expect(response.status).toBe(400);
+      expect(reserveUsageMock).not.toHaveBeenCalled();
+    }
+  );
+
   it("retorna 401 quando nao ha sessao valida", async () => {
     verifySessionTokenMock.mockResolvedValueOnce(null);
 
@@ -173,6 +200,24 @@ describe("POST /api/generate", () => {
     expect(generateImageMock).toHaveBeenCalledWith(
       "Um design de tatuagem pronto para transferência de decalque, um gato, em preto e cinza detalhado, impresso em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada.",
       "16:9"
+    );
+  });
+
+  it("retorna 200 usando o prompt composto com o estilo quando estilo e valido", async () => {
+    reserveUsageMock.mockResolvedValueOnce(["u1"]);
+    generateImageMock.mockResolvedValueOnce({ data: "a", mimeType: "image/png" });
+
+    const response = await postGenerate({
+      prompt: "um gato",
+      quantidade: 1,
+      proporcao: "9:16",
+      estilo: "blackwork",
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateImageMock).toHaveBeenCalledWith(
+      'Um design de tatuagem pronto para transferência de decalque em estilo Blackwork: preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza. um gato. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Impresso em fundo branco puro.',
+      "9:16"
     );
   });
 

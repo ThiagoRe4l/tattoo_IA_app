@@ -25,6 +25,7 @@ function renderPopup(overrides: Partial<Parameters<typeof ImagemPopup>[0]> = {})
         mimeType: "image/png",
         prompt: "um dragão em aquarela",
         proporcao: "9:16",
+        estilo: null,
       }}
       indice={0}
       carregando={false}
