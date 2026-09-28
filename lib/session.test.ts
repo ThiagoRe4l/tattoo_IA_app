@@ -14,11 +14,32 @@ describe("session", () => {
 
   it("rejeita um token adulterado", async () => {
     const token = await createSessionToken(studio);
-    const tampered = token.slice(0, -1) + (token.endsWith("a") ? "b" : "a");
+    const [header, payload, signature] = token.split(".");
+    const primeiroCaractere = signature[0] === "a" ? "b" : "a";
+    const tampered = `${header}.${payload}.${primeiroCaractere}${signature.slice(1)}`;
 
-    const payload = await verifySessionToken(tampered);
+    const resultado = await verifySessionToken(tampered);
 
-    expect(payload).toBeNull();
+    expect(resultado).toBeNull();
+  });
+
+  it("rejeita um token com payload alterado mas assinatura original", async () => {
+    const token = await createSessionToken(studio);
+    const [header, payload, signature] = token.split(".");
+
+    const payloadDecodificado = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf-8")
+    );
+    payloadDecodificado.id = "outro-studio-id";
+    const payloadAdulterado = Buffer.from(
+      JSON.stringify(payloadDecodificado)
+    ).toString("base64url");
+
+    const tampered = `${header}.${payloadAdulterado}.${signature}`;
+
+    const resultado = await verifySessionToken(tampered);
+
+    expect(resultado).toBeNull();
   });
 
   it("rejeita um token expirado", async () => {
