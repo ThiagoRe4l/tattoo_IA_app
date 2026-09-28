@@ -2,7 +2,7 @@ import "server-only";
 import { ESTILOS_UI, type EstiloId } from "./estilos";
 
 export function montarPromptFinal(assunto: string): string {
-  return `Um design de tatuagem pronto para transferência de decalque, ${assunto}, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada.`;
+  return `Um design de tatuagem pronto para transferência de decalque, ${assunto}, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.`;
 }
 
 const TECNICAS: Record<EstiloId, string> = {
@@ -13,7 +13,7 @@ const TECNICAS: Record<EstiloId, string> = {
   aquarela:
     "manchas de cor fluidas e translúcidas, respingos e escorridos de tinta, contornos soltos ou inexistentes, cores vibrantes se misturando nas bordas",
   "realismo-pb":
-    "sombreamento suave em tons de cinza contínuos, sem contornos duros, profundidade construída só por luz e sombra, microtextura sutil de agulha, alto detalhe fotográfico",
+    "sombreamento suave em tons de cinza contínuos, com hachuras finas e cross-hatching, contraste elevado entre luzes e sombras profundas, transições suaves entre os tons, profundidade construída por luz e sombra, microtextura sutil de agulha, aspecto de gravura clássica misturado com realismo moderno, alto detalhe fotográfico",
   "realismo-colorido":
     "cores vivas e saturadas com transições suaves de tom, sem contornos grossos, alto detalhe fotográfico",
   "old-school":
@@ -51,5 +51,5 @@ export function montarPromptComEstilo(
 
   const estilo = ESTILOS[estiloId as EstiloId];
 
-  return `Um design de tatuagem pronto para transferência de decalque em estilo ${estilo.rotulo}: ${estilo.tecnica}. ${assunto}. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Em fundo branco puro.`;
+  return `Um design de tatuagem pronto para transferência de decalque em estilo ${estilo.rotulo}: ${estilo.tecnica}. ${assunto}. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.`;
 }
