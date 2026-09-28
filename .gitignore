@@ -45,3 +45,6 @@ cookies.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# imagens de teste manual de prompt (scripts/testar-prompt.ts)
+/tmp/
