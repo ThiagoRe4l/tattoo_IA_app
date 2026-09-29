@@ -1,8 +1,11 @@
 import "server-only";
 import { ESTILOS_UI, type EstiloId } from "./estilos";
 
+const ENVELOPE_FINAL =
+  "objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.";
+
 export function montarPromptFinal(assunto: string): string {
-  return `Um design de tatuagem pronto para transferência de decalque, ${assunto}, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.`;
+  return `Um design de tatuagem pronto para transferência de decalque, ${assunto}, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Sem ${ENVELOPE_FINAL}`;
 }
 
 const TECNICAS: Record<EstiloId, string> = {
@@ -51,5 +54,24 @@ export function montarPromptComEstilo(
 
   const estilo = ESTILOS[estiloId as EstiloId];
 
-  return `Um design de tatuagem pronto para transferência de decalque em estilo ${estilo.rotulo}: ${estilo.tecnica}. ${assunto}. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.`;
+  return `Um design de tatuagem pronto para transferência de decalque em estilo ${estilo.rotulo}: ${estilo.tecnica}. ${assunto}. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Em fundo branco puro, sem ${ENVELOPE_FINAL}`;
+}
+
+export function montarPromptEdicao(
+  instrucao: string,
+  estiloId?: string | null
+): string {
+  if (
+    estiloId !== undefined &&
+    estiloId !== null &&
+    !Object.hasOwn(ESTILOS, estiloId)
+  ) {
+    throw new Error(`Estilo desconhecido: "${estiloId}"`);
+  }
+
+  const tecnica = estiloId
+    ? ` Aplique a técnica do estilo ${ESTILOS[estiloId as EstiloId].rotulo}: ${ESTILOS[estiloId as EstiloId].tecnica}.`
+    : "";
+
+  return `Edite a imagem de tatuagem anexada seguindo esta instrução: ${instrucao}. Preserve tudo o que não foi mencionado na instrução.${tecnica} Em fundo branco puro, sem ${ENVELOPE_FINAL}`;
 }

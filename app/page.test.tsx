@@ -138,6 +138,89 @@ describe("seletor de estilo", () => {
   });
 });
 
+describe("anexar imagem de referencia", () => {
+  it("mostra previa e muda o rotulo do campo depois de anexar; remover volta ao normal", async () => {
+    render(<Home />);
+
+    expect(screen.getByLabelText(/descreva a tatuagem/i)).toBeInTheDocument();
+
+    const arquivo = new File(["conteudo-fake"], "referencia.png", {
+      type: "image/png",
+    });
+
+    fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
+      target: { files: [arquivo] },
+    });
+
+    expect(
+      await screen.findByAltText(/prévia da imagem anexada/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/o que você quer mudar ou recriar/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /remover/i }));
+
+    expect(
+      screen.queryByAltText(/prévia da imagem anexada/i)
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/descreva a tatuagem/i)).toBeInTheDocument();
+  });
+
+  it("rejeita arquivo maior que o limite sem anexar", () => {
+    render(<Home />);
+
+    const arquivoGrande = new File(["x"], "grande.png", { type: "image/png" });
+    Object.defineProperty(arquivoGrande, "size", { value: 3 * 1024 * 1024 });
+
+    fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
+      target: { files: [arquivoGrande] },
+    });
+
+    expect(screen.getByText(/imagem muito grande/i)).toBeInTheDocument();
+    expect(
+      screen.queryByAltText(/prévia da imagem anexada/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("inclui imagemReferencia em base64 no corpo do POST quando ha imagem anexada", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ imagens: [], solicitadas: 1, geradas: 0 }),
+        { status: 200 }
+      )
+    );
+
+    render(<Home />);
+
+    const arquivo = new File(["conteudo-fake"], "referencia.png", {
+      type: "image/png",
+    });
+
+    fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
+      target: { files: [arquivo] },
+    });
+
+    await screen.findByAltText(/prévia da imagem anexada/i);
+
+    fireEvent.change(
+      screen.getByLabelText(/o que você quer mudar ou recriar/i),
+      { target: { value: "deixe azul" } }
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^gerar$/i }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(options.body as string);
+
+    expect(body.prompt).toBe("deixe azul");
+    expect(body.imagemReferencia.mimeType).toBe("image/png");
+    expect(typeof body.imagemReferencia.data).toBe("string");
+    expect(body.imagemReferencia.data.length).toBeGreaterThan(0);
+  });
+});
+
 describe("Home", () => {
   it("envia prompt, quantidade e proporcao pra /api/generate", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
@@ -168,6 +251,7 @@ describe("Home", () => {
             quantidade: 2,
             proporcao: "16:9",
             estilo: null,
+            imagemReferencia: null,
           }),
         })
       )
@@ -194,6 +278,7 @@ describe("Home", () => {
             quantidade: 1,
             proporcao: "9:16",
             estilo: null,
+            imagemReferencia: null,
           }),
         })
       )
@@ -220,6 +305,7 @@ describe("Home", () => {
             quantidade: 1,
             proporcao: "9:16",
             estilo: "blackwork",
+            imagemReferencia: null,
           }),
         })
       )

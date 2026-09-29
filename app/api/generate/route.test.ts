@@ -120,6 +120,65 @@ describe("POST /api/generate", () => {
     }
   );
 
+  it.each([
+    { imagemReferencia: { mimeType: "image/png" } },
+    { imagemReferencia: { data: "abc" } },
+    { imagemReferencia: { data: "abc", mimeType: "text/plain" } },
+    { imagemReferencia: "nao-e-um-objeto" },
+  ])(
+    "retorna 400 quando imagemReferencia e invalida ($imagemReferencia)",
+    async ({ imagemReferencia }) => {
+      const response = await postGenerate({
+        prompt: "um gato",
+        quantidade: 1,
+        proporcao: "9:16",
+        imagemReferencia,
+      });
+
+      expect(response.status).toBe(400);
+      expect(reserveUsageMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it("retorna 200 usando montarPromptEdicao e repassa a referencia pro gemini quando imagemReferencia e valida", async () => {
+    reserveUsageMock.mockResolvedValueOnce(["u1"]);
+    generateImageMock.mockResolvedValueOnce({ data: "a", mimeType: "image/png" });
+
+    const response = await postGenerate({
+      prompt: "deixe o dragão azul",
+      quantidade: 1,
+      proporcao: "9:16",
+      imagemReferencia: { data: "ref-base64", mimeType: "image/jpeg" },
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateImageMock).toHaveBeenCalledWith(
+      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.",
+      "9:16",
+      { data: "ref-base64", mimeType: "image/jpeg" }
+    );
+  });
+
+  it("retorna 200 quando o corpo tem estilo:null explicito e imagemReferencia (formato real enviado por app/page.tsx)", async () => {
+    reserveUsageMock.mockResolvedValueOnce(["u1"]);
+    generateImageMock.mockResolvedValueOnce({ data: "a", mimeType: "image/png" });
+
+    const response = await postGenerate({
+      prompt: "deixe o dragão azul",
+      quantidade: 1,
+      proporcao: "9:16",
+      estilo: null,
+      imagemReferencia: { data: "ref-base64", mimeType: "image/jpeg" },
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateImageMock).toHaveBeenCalledWith(
+      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.",
+      "9:16",
+      { data: "ref-base64", mimeType: "image/jpeg" }
+    );
+  });
+
   it("retorna 401 quando nao ha sessao valida", async () => {
     verifySessionTokenMock.mockResolvedValueOnce(null);
 
@@ -199,7 +258,8 @@ describe("POST /api/generate", () => {
     expect(releaseUsageMock).not.toHaveBeenCalled();
     expect(generateImageMock).toHaveBeenCalledWith(
       "Um design de tatuagem pronto para transferência de decalque, um gato, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.",
-      "16:9"
+      "16:9",
+      undefined
     );
   });
 
@@ -217,7 +277,8 @@ describe("POST /api/generate", () => {
     expect(response.status).toBe(200);
     expect(generateImageMock).toHaveBeenCalledWith(
       'Um design de tatuagem pronto para transferência de decalque em estilo Blackwork: preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza. um gato. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.',
-      "9:16"
+      "9:16",
+      undefined
     );
   });
 

@@ -17,6 +17,13 @@ type Erro = {
 const QUANTIDADES = [1, 2, 3, 4] as const;
 const PROPORCOES = ["9:16", "1:1", "16:9"] as const;
 const ROTACOES_CARTAO = ["-3deg", "2deg", "-1.5deg", "2.5deg"];
+const LIMITE_IMAGEM_BYTES = 2 * 1024 * 1024;
+
+type ImagemAnexada = {
+  data: string;
+  mimeType: string;
+  dataUrl: string;
+};
 
 function extensaoDoMimeType(mimeType: string): string {
   return mimeType.split("/")[1] || "png";
@@ -28,6 +35,10 @@ export default function Home() {
   const [proporcao, setProporcao] =
     useState<(typeof PROPORCOES)[number]>("9:16");
   const [estilo, setEstilo] = useState<string | null>(null);
+  const [imagemAnexada, setImagemAnexada] = useState<ImagemAnexada | null>(
+    null
+  );
+  const [erroImagem, setErroImagem] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
   const [imagens, setImagens] = useState<ImagemComMetadados[]>([]);
@@ -49,7 +60,15 @@ export default function Home() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, quantidade, proporcao, estilo }),
+        body: JSON.stringify({
+          prompt,
+          quantidade,
+          proporcao,
+          estilo,
+          imagemReferencia: imagemAnexada
+            ? { data: imagemAnexada.data, mimeType: imagemAnexada.mimeType }
+            : null,
+        }),
       });
 
       const body = await response.json().catch(() => null);
@@ -71,6 +90,39 @@ export default function Home() {
     } finally {
       setCarregando(false);
     }
+  }
+
+  function handleAnexarImagem(event: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!arquivo) {
+      return;
+    }
+
+    setErroImagem(null);
+
+    if (arquivo.size > LIMITE_IMAGEM_BYTES) {
+      setErroImagem("Imagem muito grande. O limite é 2 MB.");
+      return;
+    }
+
+    const leitor = new FileReader();
+
+    leitor.onload = () => {
+      const dataUrl = leitor.result as string;
+      const [prefixo, data] = dataUrl.split(",");
+      const mimeType = prefixo.match(/data:(.*);base64/)?.[1] ?? arquivo.type;
+
+      setImagemAnexada({ data, mimeType, dataUrl });
+    };
+
+    leitor.readAsDataURL(arquivo);
+  }
+
+  function handleRemoverImagem() {
+    setImagemAnexada(null);
+    setErroImagem(null);
   }
 
   async function handleRegenerar(indice: number) {
@@ -134,7 +186,9 @@ export default function Home() {
               htmlFor="prompt"
               className="text-sm font-medium text-faded"
             >
-              Descreva a tatuagem
+              {imagemAnexada
+                ? "O que você quer mudar ou recriar"
+                : "Descreva a tatuagem"}
             </label>
             <textarea
               id="prompt"
@@ -143,6 +197,38 @@ export default function Home() {
               rows={4}
               className="border-0 border-b-2 border-field bg-transparent px-1 py-2 text-ink outline-none focus:border-ink"
             />
+
+            <span className="text-sm font-medium text-faded">
+              Imagem de referência (opcional)
+            </span>
+            {imagemAnexada ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element -- previa local do arquivo anexado, sem dominio remoto pra otimizar */}
+                <img
+                  src={imagemAnexada.dataUrl}
+                  alt="Prévia da imagem anexada"
+                  className="h-20 w-20 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoverImagem}
+                  className="text-sm font-medium text-oxide underline"
+                >
+                  Remover
+                </button>
+              </div>
+            ) : (
+              <label className="flex h-11 w-fit cursor-pointer items-center justify-center border-2 border-ink px-4 text-sm font-medium text-ink">
+                Anexar imagem
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAnexarImagem}
+                  className="hidden"
+                />
+              </label>
+            )}
+            {erroImagem && <p className="text-sm text-oxide">{erroImagem}</p>}
 
             <span className="text-sm font-medium text-faded">
               Estilo (opcional)

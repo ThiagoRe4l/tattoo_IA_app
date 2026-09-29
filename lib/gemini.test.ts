@@ -60,6 +60,27 @@ describe("generateImage", () => {
     );
   });
 
+  it("monta o input como array de imagem+texto quando ha referencia", async () => {
+    process.env.GEMINI_API_KEY = "chave-de-teste";
+    createMock.mockResolvedValueOnce({
+      output_image: { data: "base64-fake", mime_type: "image/png" },
+    });
+
+    await generateImage("edite isso", "9:16", {
+      data: "referencia-base64",
+      mimeType: "image/jpeg",
+    });
+
+    expect(createMock).toHaveBeenCalledWith({
+      model: "gemini-3.1-flash-image",
+      input: [
+        { type: "image", data: "referencia-base64", mime_type: "image/jpeg" },
+        { type: "text", text: "edite isso" },
+      ],
+      response_format: { type: "image", aspect_ratio: "9:16" },
+    });
+  });
+
   it("lanca erro quando a interaction nao retorna output_image", async () => {
     process.env.GEMINI_API_KEY = "chave-de-teste";
     createMock.mockResolvedValueOnce({});

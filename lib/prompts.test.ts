@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { ESTILOS_UI } from "./estilos";
-import { ESTILOS, montarPromptComEstilo, montarPromptFinal } from "./prompts";
+import {
+  ESTILOS,
+  montarPromptComEstilo,
+  montarPromptEdicao,
+  montarPromptFinal,
+} from "./prompts";
 
 describe("montarPromptFinal", () => {
   it("envolve o assunto no prompt base universal", () => {
@@ -43,6 +48,32 @@ describe("montarPromptComEstilo", () => {
       );
     }
   );
+});
+
+describe("montarPromptEdicao", () => {
+  it("compoe o prompt de edicao sem estilo", () => {
+    expect(montarPromptEdicao("deixe o dragão azul")).toBe(
+      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha."
+    );
+  });
+
+  it("compoe o prompt de edicao com a tecnica do estilo quando presente", () => {
+    expect(montarPromptEdicao("deixe o dragão azul", "blackwork")).toBe(
+      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Aplique a técnica do estilo Blackwork: preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha."
+    );
+  });
+
+  it("lanca erro quando o estiloId nao existe em ESTILOS", () => {
+    expect(() => montarPromptEdicao("deixe azul", "cubista")).toThrow(
+      'Estilo desconhecido: "cubista"'
+    );
+  });
+
+  it("funciona igual a sem estilo quando estiloId e null explicito (nao omitido)", () => {
+    expect(montarPromptEdicao("deixe o dragão azul", null)).toBe(
+      montarPromptEdicao("deixe o dragão azul")
+    );
+  });
 });
 
 describe("ESTILOS", () => {

@@ -9,6 +9,11 @@ export type GeneratedImage = {
   mimeType: string;
 };
 
+export type ReferenciaImagem = {
+  data: string;
+  mimeType: string;
+};
+
 function getClient() {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -21,13 +26,25 @@ function getClient() {
 
 export async function generateImage(
   prompt: string,
-  proporcao: Proporcao
+  proporcao: Proporcao,
+  referencia?: ReferenciaImagem
 ): Promise<GeneratedImage> {
   const ai = getClient();
 
+  const input = referencia
+    ? [
+        {
+          type: "image" as const,
+          data: referencia.data,
+          mime_type: referencia.mimeType,
+        },
+        { type: "text" as const, text: prompt },
+      ]
+    : prompt;
+
   const interaction = await ai.interactions.create({
     model: MODEL,
-    input: prompt,
+    input,
     response_format: { type: "image", aspect_ratio: proporcao },
   });
 

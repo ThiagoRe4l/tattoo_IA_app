@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateImage, type Proporcao } from "@/lib/gemini";
-import { ESTILOS, montarPromptComEstilo, montarPromptFinal } from "@/lib/prompts";
+import {
+  ESTILOS,
+  montarPromptComEstilo,
+  montarPromptEdicao,
+  montarPromptFinal,
+} from "@/lib/prompts";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 import { checkQuota, releaseUsage, reserveUsage } from "@/lib/usage";
 
@@ -19,6 +24,7 @@ export async function POST(request: NextRequest) {
   const quantidade = body?.quantidade;
   const proporcao = body?.proporcao;
   const estilo = body?.estilo;
+  const imagemReferencia = body?.imagemReferencia;
 
   if (typeof prompt !== "string" || prompt.trim().length === 0) {
     return NextResponse.json({ error: "Prompt obrigatório" }, { status: 400 });
@@ -52,6 +58,20 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json(
       { error: `estilo deve ser um de: ${Object.keys(ESTILOS).join(", ")}` },
+      { status: 400 }
+    );
+  }
+
+  if (
+    imagemReferencia !== undefined &&
+    imagemReferencia !== null &&
+    (typeof imagemReferencia !== "object" ||
+      typeof imagemReferencia.data !== "string" ||
+      typeof imagemReferencia.mimeType !== "string" ||
+      !imagemReferencia.mimeType.startsWith("image/"))
+  ) {
+    return NextResponse.json(
+      { error: "imagemReferencia deve ter data e mimeType (image/*) válidos" },
       { status: 400 }
     );
   }
@@ -95,11 +115,15 @@ export async function POST(request: NextRequest) {
 
   for (const id of reservados) {
     try {
-      const promptFinal = estilo
-        ? montarPromptComEstilo(prompt, estilo)
-        : montarPromptFinal(prompt);
+      const promptFinal = imagemReferencia
+        ? montarPromptEdicao(prompt, estilo)
+        : estilo
+          ? montarPromptComEstilo(prompt, estilo)
+          : montarPromptFinal(prompt);
 
-      imagens.push(await generateImage(promptFinal, proporcao));
+      imagens.push(
+        await generateImage(promptFinal, proporcao, imagemReferencia)
+      );
     } catch (error) {
       console.error("Erro ao gerar imagem:", error);
       idsFalhos.push(id);
