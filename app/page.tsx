@@ -28,6 +28,66 @@ function extensaoDoMimeType(mimeType: string): string {
   return mimeType.split("/")[1] || "png";
 }
 
+type ResumoAnexo = {
+  totalSelecionado: number;
+  totalAnexado: number;
+  ignoradosPorLimite: number;
+  grandesDemais: number;
+  falhasProcessamento: number;
+};
+
+function montarMensagemAnexo({
+  totalSelecionado,
+  totalAnexado,
+  ignoradosPorLimite,
+  grandesDemais,
+  falhasProcessamento,
+}: ResumoAnexo): string | null {
+  const totalIgnorado = ignoradosPorLimite + grandesDemais + falhasProcessamento;
+
+  if (totalIgnorado === 0) {
+    return null;
+  }
+
+  if (totalSelecionado === 1) {
+    if (ignoradosPorLimite === 1) {
+      return `O limite de ${MAX_IMAGENS_ANEXADAS} imagens já foi atingido.`;
+    }
+    if (grandesDemais === 1) {
+      return "Imagem muito grande. O limite é 15 MB.";
+    }
+    return "Não foi possível processar a imagem.";
+  }
+
+  const motivos: string[] = [];
+
+  if (ignoradosPorLimite > 0) {
+    motivos.push(
+      ignoradosPorLimite === 1
+        ? `1 não coube (limite de ${MAX_IMAGENS_ANEXADAS} imagens)`
+        : `${ignoradosPorLimite} não couberam (limite de ${MAX_IMAGENS_ANEXADAS} imagens)`
+    );
+  }
+
+  if (grandesDemais > 0) {
+    motivos.push(
+      grandesDemais === 1
+        ? "1 maior que 15 MB"
+        : `${grandesDemais} maiores que 15 MB`
+    );
+  }
+
+  if (falhasProcessamento > 0) {
+    motivos.push(
+      falhasProcessamento === 1
+        ? "1 falhou ao processar"
+        : `${falhasProcessamento} falharam ao processar`
+    );
+  }
+
+  return `${totalAnexado} de ${totalSelecionado} imagens foram anexadas. ${motivos.join("; ")}.`;
+}
+
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [quantidade, setQuantidade] = useState<(typeof QUANTIDADES)[number]>(1);
@@ -103,25 +163,59 @@ export default function Home() {
   async function handleAnexarImagem(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const arquivo = event.target.files?.[0];
+    const arquivos = Array.from(event.target.files ?? []);
     event.target.value = "";
 
-    if (!arquivo) {
+    if (arquivos.length === 0) {
       return;
     }
 
     setErroImagem(null);
 
-    if (arquivo.size > LIMITE_IMAGEM_BYTES) {
-      setErroImagem("Imagem muito grande. O limite é 15 MB.");
-      return;
+    const espacoRestante = Math.max(
+      MAX_IMAGENS_ANEXADAS - imagensAnexadas.length,
+      0
+    );
+    const arquivosConsiderados = arquivos.slice(0, espacoRestante);
+    const ignoradosPorLimite = arquivos.length - arquivosConsiderados.length;
+
+    const arquivosValidos: File[] = [];
+    let grandesDemais = 0;
+
+    for (const arquivo of arquivosConsiderados) {
+      if (arquivo.size > LIMITE_IMAGEM_BYTES) {
+        grandesDemais += 1;
+      } else {
+        arquivosValidos.push(arquivo);
+      }
     }
 
-    try {
-      const imagemRedimensionada = await redimensionarImagem(arquivo);
-      setImagensAnexadas((atual) => [...atual, imagemRedimensionada]);
-    } catch {
-      setErroImagem("Não foi possível processar a imagem.");
+    const resultados = await Promise.allSettled(
+      arquivosValidos.map((arquivo) => redimensionarImagem(arquivo))
+    );
+
+    const anexadas = resultados
+      .filter(
+        (resultado): resultado is PromiseFulfilledResult<ImagemRedimensionada> =>
+          resultado.status === "fulfilled"
+      )
+      .map((resultado) => resultado.value);
+    const falhasProcessamento = resultados.length - anexadas.length;
+
+    if (anexadas.length > 0) {
+      setImagensAnexadas((atual) => [...atual, ...anexadas]);
+    }
+
+    const mensagem = montarMensagemAnexo({
+      totalSelecionado: arquivos.length,
+      totalAnexado: anexadas.length,
+      ignoradosPorLimite,
+      grandesDemais,
+      falhasProcessamento,
+    });
+
+    if (mensagem) {
+      setErroImagem(mensagem);
     }
   }
 
@@ -235,6 +329,7 @@ export default function Home() {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleAnexarImagem}
                   className="hidden"
                 />

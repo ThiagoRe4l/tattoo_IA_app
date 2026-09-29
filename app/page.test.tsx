@@ -170,6 +170,18 @@ function anexar(nomeArquivo: string) {
   return arquivo;
 }
 
+function anexarVarios(nomesArquivos: string[]) {
+  const arquivos = nomesArquivos.map(
+    (nome) => new File(["conteudo-fake"], nome, { type: "image/png" })
+  );
+
+  fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
+    target: { files: arquivos },
+  });
+
+  return arquivos;
+}
+
 describe("anexar imagens de referencia", () => {
   it("mostra previa e muda o rotulo do campo depois de anexar; remover volta ao normal", async () => {
     render(<Home />);
@@ -193,7 +205,7 @@ describe("anexar imagens de referencia", () => {
     expect(screen.getByLabelText(/descreva a tatuagem/i)).toBeInTheDocument();
   });
 
-  it("rejeita arquivo maior que o limite de entrada sem anexar nem redimensionar", () => {
+  it("rejeita arquivo maior que o limite de entrada sem anexar nem redimensionar", async () => {
     render(<Home />);
 
     const arquivoGrande = new File(["x"], "grande.png", { type: "image/png" });
@@ -203,7 +215,7 @@ describe("anexar imagens de referencia", () => {
       target: { files: [arquivoGrande] },
     });
 
-    expect(screen.getByText(/imagem muito grande/i)).toBeInTheDocument();
+    expect(await screen.findByText(/imagem muito grande/i)).toBeInTheDocument();
     expect(
       screen.queryByAltText(/prévia da imagem anexada/i)
     ).not.toBeInTheDocument();
@@ -278,6 +290,80 @@ describe("anexar imagens de referencia", () => {
       data: "base64-redimensionado-dois.png",
       mimeType: "image/jpeg",
     });
+  });
+
+  it("seleciona varios arquivos de uma vez e anexa todos quando cabem, sem mensagem", async () => {
+    render(<Home />);
+
+    anexarVarios(["um.png", "dois.png", "tres.png"]);
+
+    await screen.findByAltText(/prévia da imagem anexada 3/i);
+
+    expect(screen.getAllByRole("img", { name: /prévia/i })).toHaveLength(3);
+    expect(screen.queryByText(/imagens foram anexadas/i)).not.toBeInTheDocument();
+  });
+
+  it("trunca a selecao multipla pelo limite de 4 e avisa quantas couberam", async () => {
+    render(<Home />);
+
+    anexar("existente-um.png");
+    await screen.findByAltText(/prévia da imagem anexada 1/i);
+    anexar("existente-dois.png");
+    await screen.findByAltText(/prévia da imagem anexada 2/i);
+
+    anexarVarios(["tres.png", "quatro.png", "cinco.png"]);
+
+    await screen.findByAltText(/prévia da imagem anexada 4/i);
+
+    expect(screen.getAllByRole("img", { name: /prévia/i })).toHaveLength(4);
+    expect(
+      screen.getByText(
+        "2 de 3 imagens foram anexadas. 1 não coube (limite de 4 imagens)."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("anexa os validos e avisa sobre o arquivo grande demais no meio da selecao", async () => {
+    render(<Home />);
+
+    const arquivos = ["um.png", "grande.png", "tres.png"].map(
+      (nome) => new File(["conteudo-fake"], nome, { type: "image/png" })
+    );
+    Object.defineProperty(arquivos[1], "size", { value: 16 * 1024 * 1024 });
+
+    fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
+      target: { files: arquivos },
+    });
+
+    await screen.findByAltText(/prévia da imagem anexada 2/i);
+
+    expect(screen.getAllByRole("img", { name: /prévia/i })).toHaveLength(2);
+    expect(
+      screen.getByText(
+        "2 de 3 imagens foram anexadas. 1 maior que 15 MB."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("anexa os validos e avisa sobre a falha de processamento no meio da selecao", async () => {
+    redimensionarImagemMock.mockImplementation((arquivo: File) =>
+      arquivo.name === "falha.png"
+        ? Promise.reject(new Error("boom"))
+        : Promise.resolve(imagemRedimensionadaFake(arquivo.name))
+    );
+
+    render(<Home />);
+
+    anexarVarios(["um.png", "falha.png", "tres.png"]);
+
+    await screen.findByAltText(/prévia da imagem anexada 2/i);
+
+    expect(screen.getAllByRole("img", { name: /prévia/i })).toHaveLength(2);
+    expect(
+      screen.getByText(
+        "2 de 3 imagens foram anexadas. 1 falhou ao processar."
+      )
+    ).toBeInTheDocument();
   });
 });
 
