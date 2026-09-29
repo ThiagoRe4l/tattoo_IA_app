@@ -121,18 +121,27 @@ describe("POST /api/generate", () => {
   );
 
   it.each([
-    { imagemReferencia: { mimeType: "image/png" } },
-    { imagemReferencia: { data: "abc" } },
-    { imagemReferencia: { data: "abc", mimeType: "text/plain" } },
-    { imagemReferencia: "nao-e-um-objeto" },
+    { imagensReferencia: [{ mimeType: "image/png" }] },
+    { imagensReferencia: [{ data: "abc" }] },
+    { imagensReferencia: [{ data: "abc", mimeType: "text/plain" }] },
+    { imagensReferencia: "nao-e-um-array" },
+    {
+      imagensReferencia: [
+        { data: "1", mimeType: "image/png" },
+        { data: "2", mimeType: "image/png" },
+        { data: "3", mimeType: "image/png" },
+        { data: "4", mimeType: "image/png" },
+        { data: "5", mimeType: "image/png" },
+      ],
+    },
   ])(
-    "retorna 400 quando imagemReferencia e invalida ($imagemReferencia)",
-    async ({ imagemReferencia }) => {
+    "retorna 400 quando imagensReferencia e invalida ($imagensReferencia)",
+    async ({ imagensReferencia }) => {
       const response = await postGenerate({
         prompt: "um gato",
         quantidade: 1,
         proporcao: "9:16",
-        imagemReferencia,
+        imagensReferencia,
       });
 
       expect(response.status).toBe(400);
@@ -140,26 +149,26 @@ describe("POST /api/generate", () => {
     }
   );
 
-  it("retorna 200 usando montarPromptEdicao e repassa a referencia pro gemini quando imagemReferencia e valida", async () => {
+  it("trata imagensReferencia: [] igual a ausente (usa montarPromptFinal, nao montarPromptEdicao)", async () => {
     reserveUsageMock.mockResolvedValueOnce(["u1"]);
     generateImageMock.mockResolvedValueOnce({ data: "a", mimeType: "image/png" });
 
     const response = await postGenerate({
-      prompt: "deixe o dragão azul",
+      prompt: "um gato",
       quantidade: 1,
       proporcao: "9:16",
-      imagemReferencia: { data: "ref-base64", mimeType: "image/jpeg" },
+      imagensReferencia: [],
     });
 
     expect(response.status).toBe(200);
     expect(generateImageMock).toHaveBeenCalledWith(
-      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.",
+      "Um design de tatuagem pronto para transferência de decalque, um gato, em preto e cinza detalhado, em fundo branco puro. A ilustração segue seu próprio contorno artístico natural — nunca o contorno de um braço, perna, ou qualquer parte do corpo, mesmo que a descrição mencione onde a tatuagem será aplicada. Sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.",
       "9:16",
-      { data: "ref-base64", mimeType: "image/jpeg" }
+      undefined
     );
   });
 
-  it("retorna 200 quando o corpo tem estilo:null explicito e imagemReferencia (formato real enviado por app/page.tsx)", async () => {
+  it("retorna 200 usando montarPromptEdicao e repassa 1 referencia pro gemini", async () => {
     reserveUsageMock.mockResolvedValueOnce(["u1"]);
     generateImageMock.mockResolvedValueOnce({ data: "a", mimeType: "image/png" });
 
@@ -168,14 +177,40 @@ describe("POST /api/generate", () => {
       quantidade: 1,
       proporcao: "9:16",
       estilo: null,
-      imagemReferencia: { data: "ref-base64", mimeType: "image/jpeg" },
+      imagensReferencia: [{ data: "ref-base64", mimeType: "image/jpeg" }],
     });
 
     expect(response.status).toBe(200);
     expect(generateImageMock).toHaveBeenCalledWith(
-      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.",
+      "Use a(s) imagem(ns) de referência anexada(s) para seguir esta instrução: deixe o dragão azul. Preserve o que não foi mencionado na instrução — edite ou combine as imagens conforme pedido, sem alterar o que não foi solicitado. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha.",
       "9:16",
-      { data: "ref-base64", mimeType: "image/jpeg" }
+      [{ data: "ref-base64", mimeType: "image/jpeg" }]
+    );
+  });
+
+  it("retorna 200 usando montarPromptEdicao e repassa as 4 referencias pro gemini", async () => {
+    reserveUsageMock.mockResolvedValueOnce(["u1"]);
+    generateImageMock.mockResolvedValueOnce({ data: "a", mimeType: "image/png" });
+
+    const imagensReferencia = [
+      { data: "ref-1", mimeType: "image/jpeg" },
+      { data: "ref-2", mimeType: "image/png" },
+      { data: "ref-3", mimeType: "image/webp" },
+      { data: "ref-4", mimeType: "image/jpeg" },
+    ];
+
+    const response = await postGenerate({
+      prompt: "junte essas quatro referências",
+      quantidade: 1,
+      proporcao: "9:16",
+      imagensReferencia,
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateImageMock).toHaveBeenCalledWith(
+      expect.any(String),
+      "9:16",
+      imagensReferencia
     );
   });
 

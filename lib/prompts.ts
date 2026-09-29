@@ -73,5 +73,5 @@ export function montarPromptEdicao(
     ? ` Aplique a técnica do estilo ${ESTILOS[estiloId as EstiloId].rotulo}: ${ESTILOS[estiloId as EstiloId].tecnica}.`
     : "";
 
-  return `Edite a imagem de tatuagem anexada seguindo esta instrução: ${instrucao}. Preserve tudo o que não foi mencionado na instrução.${tecnica} Em fundo branco puro, sem ${ENVELOPE_FINAL}`;
+  return `Use a(s) imagem(ns) de referência anexada(s) para seguir esta instrução: ${instrucao}. Preserve o que não foi mencionado na instrução — edite ou combine as imagens conforme pedido, sem alterar o que não foi solicitado.${tecnica} Em fundo branco puro, sem ${ENVELOPE_FINAL}`;
 }

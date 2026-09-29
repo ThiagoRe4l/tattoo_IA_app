@@ -3,6 +3,10 @@
 import { useState } from "react";
 import ImagemPopup, { type ImagemComMetadados } from "./ImagemPopup";
 import { ESTILOS_UI } from "@/lib/estilos";
+import {
+  redimensionarImagem,
+  type ImagemRedimensionada,
+} from "@/lib/redimensionar-imagem";
 
 type ImagemGerada = {
   data: string;
@@ -17,13 +21,8 @@ type Erro = {
 const QUANTIDADES = [1, 2, 3, 4] as const;
 const PROPORCOES = ["9:16", "1:1", "16:9"] as const;
 const ROTACOES_CARTAO = ["-3deg", "2deg", "-1.5deg", "2.5deg"];
-const LIMITE_IMAGEM_BYTES = 2 * 1024 * 1024;
-
-type ImagemAnexada = {
-  data: string;
-  mimeType: string;
-  dataUrl: string;
-};
+const LIMITE_IMAGEM_BYTES = 15 * 1024 * 1024;
+const MAX_IMAGENS_ANEXADAS = 4;
 
 function extensaoDoMimeType(mimeType: string): string {
   return mimeType.split("/")[1] || "png";
@@ -35,9 +34,9 @@ export default function Home() {
   const [proporcao, setProporcao] =
     useState<(typeof PROPORCOES)[number]>("9:16");
   const [estilo, setEstilo] = useState<string | null>(null);
-  const [imagemAnexada, setImagemAnexada] = useState<ImagemAnexada | null>(
-    null
-  );
+  const [imagensAnexadas, setImagensAnexadas] = useState<
+    ImagemRedimensionada[]
+  >([]);
   const [erroImagem, setErroImagem] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
@@ -56,6 +55,11 @@ export default function Home() {
     setAvisoLote(undefined);
     setCarregando(true);
 
+    const referenciasEnviadas = imagensAnexadas.map((imagem) => ({
+      data: imagem.data,
+      mimeType: imagem.mimeType,
+    }));
+
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -65,9 +69,7 @@ export default function Home() {
           quantidade,
           proporcao,
           estilo,
-          imagemReferencia: imagemAnexada
-            ? { data: imagemAnexada.data, mimeType: imagemAnexada.mimeType }
-            : null,
+          imagensReferencia: referenciasEnviadas,
         }),
       });
 
@@ -83,7 +85,13 @@ export default function Home() {
 
       const novasImagens: ImagemComMetadados[] = (
         body.imagens as ImagemGerada[]
-      ).map((imagem) => ({ ...imagem, prompt, proporcao, estilo }));
+      ).map((imagem) => ({
+        ...imagem,
+        prompt,
+        proporcao,
+        estilo,
+        imagensReferencia: referenciasEnviadas,
+      }));
 
       setImagens(novasImagens);
       setAvisoLote(body.aviso);
@@ -92,7 +100,9 @@ export default function Home() {
     }
   }
 
-  function handleAnexarImagem(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAnexarImagem(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
     const arquivo = event.target.files?.[0];
     event.target.value = "";
 
@@ -103,25 +113,20 @@ export default function Home() {
     setErroImagem(null);
 
     if (arquivo.size > LIMITE_IMAGEM_BYTES) {
-      setErroImagem("Imagem muito grande. O limite é 2 MB.");
+      setErroImagem("Imagem muito grande. O limite é 15 MB.");
       return;
     }
 
-    const leitor = new FileReader();
-
-    leitor.onload = () => {
-      const dataUrl = leitor.result as string;
-      const [prefixo, data] = dataUrl.split(",");
-      const mimeType = prefixo.match(/data:(.*);base64/)?.[1] ?? arquivo.type;
-
-      setImagemAnexada({ data, mimeType, dataUrl });
-    };
-
-    leitor.readAsDataURL(arquivo);
+    try {
+      const imagemRedimensionada = await redimensionarImagem(arquivo);
+      setImagensAnexadas((atual) => [...atual, imagemRedimensionada]);
+    } catch {
+      setErroImagem("Não foi possível processar a imagem.");
+    }
   }
 
-  function handleRemoverImagem() {
-    setImagemAnexada(null);
+  function handleRemoverImagem(indice: number) {
+    setImagensAnexadas((atual) => atual.filter((_, i) => i !== indice));
     setErroImagem(null);
   }
 
@@ -139,6 +144,7 @@ export default function Home() {
           quantidade: 1,
           proporcao: imagem.proporcao,
           estilo: imagem.estilo,
+          imagensReferencia: imagem.imagensReferencia,
         }),
       });
 
@@ -154,6 +160,7 @@ export default function Home() {
         prompt: imagem.prompt,
         proporcao: imagem.proporcao,
         estilo: imagem.estilo,
+        imagensReferencia: imagem.imagensReferencia,
       };
 
       setImagens((atual) =>
@@ -186,7 +193,7 @@ export default function Home() {
               htmlFor="prompt"
               className="text-sm font-medium text-faded"
             >
-              {imagemAnexada
+              {imagensAnexadas.length > 0
                 ? "O que você quer mudar ou recriar"
                 : "Descreva a tatuagem"}
             </label>
@@ -199,25 +206,30 @@ export default function Home() {
             />
 
             <span className="text-sm font-medium text-faded">
-              Imagem de referência (opcional)
+              Imagens de referência (opcional, até {MAX_IMAGENS_ANEXADAS})
             </span>
-            {imagemAnexada ? (
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element -- previa local do arquivo anexado, sem dominio remoto pra otimizar */}
-                <img
-                  src={imagemAnexada.dataUrl}
-                  alt="Prévia da imagem anexada"
-                  className="h-20 w-20 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoverImagem}
-                  className="text-sm font-medium text-oxide underline"
-                >
-                  Remover
-                </button>
+            {imagensAnexadas.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {imagensAnexadas.map((imagem, indice) => (
+                  <div key={indice} className="flex flex-col items-center gap-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- previa local do arquivo anexado, sem dominio remoto pra otimizar */}
+                    <img
+                      src={imagem.dataUrl}
+                      alt={`Prévia da imagem anexada ${indice + 1}`}
+                      className="h-20 w-20 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoverImagem(indice)}
+                      className="text-sm font-medium text-oxide underline"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
+            )}
+            {imagensAnexadas.length < MAX_IMAGENS_ANEXADAS && (
               <label className="flex h-11 w-fit cursor-pointer items-center justify-center border-2 border-ink px-4 text-sm font-medium text-ink">
                 Anexar imagem
                 <input

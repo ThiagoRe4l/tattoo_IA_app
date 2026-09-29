@@ -53,13 +53,13 @@ describe("montarPromptComEstilo", () => {
 describe("montarPromptEdicao", () => {
   it("compoe o prompt de edicao sem estilo", () => {
     expect(montarPromptEdicao("deixe o dragão azul")).toBe(
-      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha."
+      "Use a(s) imagem(ns) de referência anexada(s) para seguir esta instrução: deixe o dragão azul. Preserve o que não foi mencionado na instrução — edite ou combine as imagens conforme pedido, sem alterar o que não foi solicitado. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha."
     );
   });
 
   it("compoe o prompt de edicao com a tecnica do estilo quando presente", () => {
     expect(montarPromptEdicao("deixe o dragão azul", "blackwork")).toBe(
-      "Edite a imagem de tatuagem anexada seguindo esta instrução: deixe o dragão azul. Preserve tudo o que não foi mencionado na instrução. Aplique a técnica do estilo Blackwork: preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha."
+      "Use a(s) imagem(ns) de referência anexada(s) para seguir esta instrução: deixe o dragão azul. Preserve o que não foi mencionado na instrução — edite ou combine as imagens conforme pedido, sem alterar o que não foi solicitado. Aplique a técnica do estilo Blackwork: preenchimento sólido em preto profundo e alto contraste, contornos grossos e definidos, sem gradações de cinza. Em fundo branco puro, sem objetos adicionais ao redor e sem moldura. Design tatuável na pele, com linework preciso e em alta definição, sem detalhes impossíveis de reproduzir com agulha."
     );
   });
 

@@ -60,16 +60,15 @@ describe("generateImage", () => {
     );
   });
 
-  it("monta o input como array de imagem+texto quando ha referencia", async () => {
+  it("monta o input com uma parte de imagem quando ha uma referencia", async () => {
     process.env.GEMINI_API_KEY = "chave-de-teste";
     createMock.mockResolvedValueOnce({
       output_image: { data: "base64-fake", mime_type: "image/png" },
     });
 
-    await generateImage("edite isso", "9:16", {
-      data: "referencia-base64",
-      mimeType: "image/jpeg",
-    });
+    await generateImage("edite isso", "9:16", [
+      { data: "referencia-base64", mimeType: "image/jpeg" },
+    ]);
 
     expect(createMock).toHaveBeenCalledWith({
       model: "gemini-3.1-flash-image",
@@ -79,6 +78,41 @@ describe("generateImage", () => {
       ],
       response_format: { type: "image", aspect_ratio: "9:16" },
     });
+  });
+
+  it("monta o input com uma parte de imagem por referencia, seguidas do texto", async () => {
+    process.env.GEMINI_API_KEY = "chave-de-teste";
+    createMock.mockResolvedValueOnce({
+      output_image: { data: "base64-fake", mime_type: "image/png" },
+    });
+
+    await generateImage("combine essas duas", "9:16", [
+      { data: "referencia-1", mimeType: "image/jpeg" },
+      { data: "referencia-2", mimeType: "image/png" },
+    ]);
+
+    expect(createMock).toHaveBeenCalledWith({
+      model: "gemini-3.1-flash-image",
+      input: [
+        { type: "image", data: "referencia-1", mime_type: "image/jpeg" },
+        { type: "image", data: "referencia-2", mime_type: "image/png" },
+        { type: "text", text: "combine essas duas" },
+      ],
+      response_format: { type: "image", aspect_ratio: "9:16" },
+    });
+  });
+
+  it("usa input de texto simples quando referencias e um array vazio", async () => {
+    process.env.GEMINI_API_KEY = "chave-de-teste";
+    createMock.mockResolvedValueOnce({
+      output_image: { data: "base64-fake", mime_type: "image/png" },
+    });
+
+    await generateImage("um gato", "9:16", []);
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({ input: "um gato" })
+    );
   });
 
   it("lanca erro quando a interaction nao retorna output_image", async () => {

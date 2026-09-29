@@ -27,17 +27,17 @@ function getClient() {
 export async function generateImage(
   prompt: string,
   proporcao: Proporcao,
-  referencia?: ReferenciaImagem
+  referencias?: ReferenciaImagem[]
 ): Promise<GeneratedImage> {
   const ai = getClient();
 
-  const input = referencia
+  const input = referencias && referencias.length > 0
     ? [
-        {
+        ...referencias.map((referencia) => ({
           type: "image" as const,
           data: referencia.data,
           mime_type: referencia.mimeType,
-        },
+        })),
         { type: "text" as const, text: prompt },
       ]
     : prompt;

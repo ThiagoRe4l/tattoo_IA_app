@@ -12,6 +12,7 @@ import { checkQuota, releaseUsage, reserveUsage } from "@/lib/usage";
 const QUANTIDADE_MIN = 1;
 const QUANTIDADE_MAX = 4;
 const PROPORCOES: Proporcao[] = ["9:16", "1:1", "16:9"];
+const MAX_IMAGENS_REFERENCIA = 4;
 
 type ImagemGerada = {
   data: string;
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
   const quantidade = body?.quantidade;
   const proporcao = body?.proporcao;
   const estilo = body?.estilo;
-  const imagemReferencia = body?.imagemReferencia;
+  const imagensReferencia = body?.imagensReferencia;
 
   if (typeof prompt !== "string" || prompt.trim().length === 0) {
     return NextResponse.json({ error: "Prompt obrigatório" }, { status: 400 });
@@ -63,18 +64,29 @@ export async function POST(request: NextRequest) {
   }
 
   if (
-    imagemReferencia !== undefined &&
-    imagemReferencia !== null &&
-    (typeof imagemReferencia !== "object" ||
-      typeof imagemReferencia.data !== "string" ||
-      typeof imagemReferencia.mimeType !== "string" ||
-      !imagemReferencia.mimeType.startsWith("image/"))
+    imagensReferencia !== undefined &&
+    imagensReferencia !== null &&
+    (!Array.isArray(imagensReferencia) ||
+      imagensReferencia.length > MAX_IMAGENS_REFERENCIA ||
+      imagensReferencia.some(
+        (imagem) =>
+          typeof imagem !== "object" ||
+          imagem === null ||
+          typeof imagem.data !== "string" ||
+          typeof imagem.mimeType !== "string" ||
+          !imagem.mimeType.startsWith("image/")
+      ))
   ) {
     return NextResponse.json(
-      { error: "imagemReferencia deve ter data e mimeType (image/*) válidos" },
+      {
+        error: `imagensReferencia deve ser uma lista de até ${MAX_IMAGENS_REFERENCIA} imagens, cada uma com data e mimeType (image/*) válidos`,
+      },
       { status: 400 }
     );
   }
+
+  const temReferencias =
+    Array.isArray(imagensReferencia) && imagensReferencia.length > 0;
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await verifySessionToken(token) : null;
@@ -115,14 +127,18 @@ export async function POST(request: NextRequest) {
 
   for (const id of reservados) {
     try {
-      const promptFinal = imagemReferencia
+      const promptFinal = temReferencias
         ? montarPromptEdicao(prompt, estilo)
         : estilo
           ? montarPromptComEstilo(prompt, estilo)
           : montarPromptFinal(prompt);
 
       imagens.push(
-        await generateImage(promptFinal, proporcao, imagemReferencia)
+        await generateImage(
+          promptFinal,
+          proporcao,
+          temReferencias ? imagensReferencia : undefined
+        )
       );
     } catch (error) {
       console.error("Erro ao gerar imagem:", error);

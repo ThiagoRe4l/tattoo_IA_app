@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Proporcao } from "@/lib/gemini";
+import type { Proporcao, ReferenciaImagem } from "@/lib/gemini";
 import { gerarStencil } from "@/lib/stencil";
 
 export type ImagemComMetadados = {
@@ -10,6 +10,7 @@ export type ImagemComMetadados = {
   prompt: string;
   proporcao: Proporcao;
   estilo: string | null;
+  imagensReferencia: ReferenciaImagem[];
 };
 
 type Props = {

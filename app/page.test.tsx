@@ -3,10 +3,30 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const { redimensionarImagemMock } = vi.hoisted(() => ({
+  redimensionarImagemMock: vi.fn(),
+}));
+
+vi.mock("@/lib/redimensionar-imagem", () => ({
+  redimensionarImagem: redimensionarImagemMock,
+}));
+
 import Home from "./page";
+
+function imagemRedimensionadaFake(sufixo: string | number) {
+  return {
+    data: `base64-redimensionado-${sufixo}`,
+    mimeType: "image/jpeg",
+    dataUrl: `data:image/jpeg;base64,base64-redimensionado-${sufixo}`,
+  };
+}
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
+  redimensionarImagemMock.mockReset();
+  redimensionarImagemMock.mockImplementation((arquivo: File) =>
+    Promise.resolve(imagemRedimensionadaFake(arquivo.name))
+  );
 });
 
 afterEach(() => {
@@ -138,19 +158,25 @@ describe("seletor de estilo", () => {
   });
 });
 
-describe("anexar imagem de referencia", () => {
+function anexar(nomeArquivo: string) {
+  const arquivo = new File(["conteudo-fake"], nomeArquivo, {
+    type: "image/png",
+  });
+
+  fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
+    target: { files: [arquivo] },
+  });
+
+  return arquivo;
+}
+
+describe("anexar imagens de referencia", () => {
   it("mostra previa e muda o rotulo do campo depois de anexar; remover volta ao normal", async () => {
     render(<Home />);
 
     expect(screen.getByLabelText(/descreva a tatuagem/i)).toBeInTheDocument();
 
-    const arquivo = new File(["conteudo-fake"], "referencia.png", {
-      type: "image/png",
-    });
-
-    fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
-      target: { files: [arquivo] },
-    });
+    anexar("referencia.png");
 
     expect(
       await screen.findByAltText(/prévia da imagem anexada/i)
@@ -167,11 +193,11 @@ describe("anexar imagem de referencia", () => {
     expect(screen.getByLabelText(/descreva a tatuagem/i)).toBeInTheDocument();
   });
 
-  it("rejeita arquivo maior que o limite sem anexar", () => {
+  it("rejeita arquivo maior que o limite de entrada sem anexar nem redimensionar", () => {
     render(<Home />);
 
     const arquivoGrande = new File(["x"], "grande.png", { type: "image/png" });
-    Object.defineProperty(arquivoGrande, "size", { value: 3 * 1024 * 1024 });
+    Object.defineProperty(arquivoGrande, "size", { value: 16 * 1024 * 1024 });
 
     fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
       target: { files: [arquivoGrande] },
@@ -181,9 +207,42 @@ describe("anexar imagem de referencia", () => {
     expect(
       screen.queryByAltText(/prévia da imagem anexada/i)
     ).not.toBeInTheDocument();
+    expect(redimensionarImagemMock).not.toHaveBeenCalled();
   });
 
-  it("inclui imagemReferencia em base64 no corpo do POST quando ha imagem anexada", async () => {
+  it("anexa ate 4 imagens, remove uma especifica da lista, e esconde o controle de anexar ao chegar em 4", async () => {
+    render(<Home />);
+
+    anexar("um.png");
+    await screen.findByAltText(/prévia da imagem anexada 1/i);
+    anexar("dois.png");
+    await screen.findByAltText(/prévia da imagem anexada 2/i);
+
+    const botoesRemover = screen.getAllByRole("button", { name: /remover/i });
+    expect(botoesRemover).toHaveLength(2);
+
+    // remove a primeira (indice 0) - a segunda deve ser a unica que sobra
+    fireEvent.click(botoesRemover[0]);
+
+    expect(screen.getAllByRole("img", { name: /prévia/i })).toHaveLength(1);
+    expect(
+      screen.getByAltText(/prévia da imagem anexada 1/i)
+    ).toHaveAttribute("src", "data:image/jpeg;base64,base64-redimensionado-dois.png");
+
+    anexar("tres.png");
+    await screen.findByAltText(/prévia da imagem anexada 2/i);
+    anexar("quatro.png");
+    await screen.findByAltText(/prévia da imagem anexada 3/i);
+    anexar("cinco.png");
+    await screen.findByAltText(/prévia da imagem anexada 4/i);
+
+    expect(screen.getAllByRole("img", { name: /prévia/i })).toHaveLength(4);
+    expect(
+      screen.queryByLabelText(/anexar imagem/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("inclui imagensReferencia (array) em base64 no corpo do POST quando ha imagens anexadas", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
       new Response(
         JSON.stringify({ imagens: [], solicitadas: 1, geradas: 0 }),
@@ -193,19 +252,14 @@ describe("anexar imagem de referencia", () => {
 
     render(<Home />);
 
-    const arquivo = new File(["conteudo-fake"], "referencia.png", {
-      type: "image/png",
-    });
-
-    fireEvent.change(screen.getByLabelText(/anexar imagem/i), {
-      target: { files: [arquivo] },
-    });
-
-    await screen.findByAltText(/prévia da imagem anexada/i);
+    anexar("um.png");
+    await screen.findByAltText(/prévia da imagem anexada 1/i);
+    anexar("dois.png");
+    await screen.findByAltText(/prévia da imagem anexada 2/i);
 
     fireEvent.change(
       screen.getByLabelText(/o que você quer mudar ou recriar/i),
-      { target: { value: "deixe azul" } }
+      { target: { value: "junte essas duas" } }
     );
     fireEvent.click(screen.getByRole("button", { name: /^gerar$/i }));
 
@@ -214,10 +268,16 @@ describe("anexar imagem de referencia", () => {
     const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const body = JSON.parse(options.body as string);
 
-    expect(body.prompt).toBe("deixe azul");
-    expect(body.imagemReferencia.mimeType).toBe("image/png");
-    expect(typeof body.imagemReferencia.data).toBe("string");
-    expect(body.imagemReferencia.data.length).toBeGreaterThan(0);
+    expect(body.prompt).toBe("junte essas duas");
+    expect(body.imagensReferencia).toHaveLength(2);
+    expect(body.imagensReferencia[0]).toEqual({
+      data: "base64-redimensionado-um.png",
+      mimeType: "image/jpeg",
+    });
+    expect(body.imagensReferencia[1]).toEqual({
+      data: "base64-redimensionado-dois.png",
+      mimeType: "image/jpeg",
+    });
   });
 });
 
@@ -251,7 +311,7 @@ describe("Home", () => {
             quantidade: 2,
             proporcao: "16:9",
             estilo: null,
-            imagemReferencia: null,
+            imagensReferencia: [],
           }),
         })
       )
@@ -278,7 +338,7 @@ describe("Home", () => {
             quantidade: 1,
             proporcao: "9:16",
             estilo: null,
-            imagemReferencia: null,
+            imagensReferencia: [],
           }),
         })
       )
@@ -305,7 +365,7 @@ describe("Home", () => {
             quantidade: 1,
             proporcao: "9:16",
             estilo: "blackwork",
-            imagemReferencia: null,
+            imagensReferencia: [],
           }),
         })
       )
@@ -481,6 +541,7 @@ describe("popup de imagem", () => {
             quantidade: 1,
             proporcao: "16:9",
             estilo: null,
+            imagensReferencia: [],
           }),
         })
       )
@@ -549,6 +610,66 @@ describe("popup de imagem", () => {
             quantidade: 1,
             proporcao: "9:16",
             estilo: "blackwork",
+            imagensReferencia: [],
+          }),
+        })
+      )
+    );
+  });
+
+  it("gerar novamente reenvia as imagens de referencia usadas na geracao original", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          imagens: [{ data: "img-a", mimeType: "image/png" }],
+          solicitadas: 1,
+          geradas: 1,
+        }),
+        { status: 200 }
+      )
+    );
+
+    render(<Home />);
+
+    anexar("referencia.png");
+    await screen.findByAltText(/prévia da imagem anexada 1/i);
+
+    fireEvent.change(
+      screen.getByLabelText(/o que você quer mudar ou recriar/i),
+      { target: { value: "deixe azul" } }
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^gerar$/i }));
+
+    fireEvent.click(await screen.findByRole("img", { name: /tatuagem/i }));
+    const dialog = await screen.findByRole("dialog");
+
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          imagens: [{ data: "img-a-nova", mimeType: "image/png" }],
+          solicitadas: 1,
+          geradas: 1,
+        }),
+        { status: 200 }
+      )
+    );
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /gerar novamente/i })
+    );
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenLastCalledWith(
+        "/api/generate",
+        expect.objectContaining({
+          body: JSON.stringify({
+            prompt: "deixe azul",
+            quantidade: 1,
+            proporcao: "9:16",
+            estilo: null,
+            imagensReferencia: [
+              { data: "base64-redimensionado-referencia.png", mimeType: "image/jpeg" },
+            ],
           }),
         })
       )
